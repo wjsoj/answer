@@ -36,3 +36,12 @@ dist/
 
 # Environment variables
 .env
+
+# Runtime data
+/data/
+
+# Generated files
+/cmd/wire_gen.go
+/docs/docs.go
+/docs/swagger.json
+/docs/swagger.yaml

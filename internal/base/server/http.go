@@ -95,6 +95,7 @@ func NewHTTPServer(debug bool,
 	authV1 := r.Group(uiConf.APIBaseURL + "/answer/api/v1")
 	authV1.Use(authUserMiddleware.MustAuthAndAccountAvailable())
 	answerRouter.RegisterAnswerAPIRouter(authV1)
+	answerRouter.RegisterUserAPIKeyRouter(authV1)
 
 	adminauthV1 := r.Group(uiConf.APIBaseURL + "/answer/admin/api")
 	adminauthV1.Use(authUserMiddleware.AdminAuth())

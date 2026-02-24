@@ -172,3 +172,20 @@ func (as *AuthService) AuthAPIKey(ctx context.Context, read bool, apiKey string)
 	log.Infof("API key %s is valid, scope: %s", apiKeyInfo.AccessKey, apiKeyInfo.Scope)
 	return true, nil
 }
+
+// GetAPIKeyWithUser retrieves API key information including user ID
+func (as *AuthService) GetAPIKeyWithUser(ctx context.Context, accessKey string) (*entity.APIKey, error) {
+	apiKeyInfo, exist, err := as.apiKeyRepo.GetAPIKey(ctx, accessKey)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return apiKeyInfo, nil
+}
+
+// UpdateAPIKeyUsage updates the usage count and last used time for an API key
+func (as *AuthService) UpdateAPIKeyUsage(ctx context.Context, apiKeyID int) error {
+	return as.apiKeyRepo.UpdateAPIKeyUsage(ctx, apiKeyID)
+}

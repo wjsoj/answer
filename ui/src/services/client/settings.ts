@@ -51,6 +51,22 @@ export const putNotificationConfig = (data: Type.NotificationConfig) => {
   return request.put('/answer/api/v1/user/notification/config', data);
 };
 
+// API Keys management
+export const getUserApiKeys = () => {
+  return request.get('/answer/api/v1/user/api-keys');
+};
+
+export const createUserApiKey = (data: {
+  name: string;
+  description: string;
+}) => {
+  return request.post('/answer/api/v1/user/api-keys', data);
+};
+
+export const deleteUserApiKey = (id: number) => {
+  return request.delete(`/answer/api/v1/user/api-keys/${id}`);
+};
+
 export const useGetUserPluginList = () => {
   return useSWR<Type.UserPluginsConfigRes[]>(
     '/answer/api/v1/user/plugin/configs',

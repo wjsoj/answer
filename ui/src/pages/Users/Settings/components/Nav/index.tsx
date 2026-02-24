@@ -47,6 +47,9 @@ const Index: FC = () => {
       <NavLink className="nav-link" to="/users/settings/interface">
         {t('interface')}
       </NavLink>
+      <NavLink className="nav-link" to="/users/settings/api-keys">
+        {t('api_keys')}
+      </NavLink>
       {data?.map((item) => {
         return (
           <NavLink

@@ -25,14 +25,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/apache/answer/pkg/converter"
+
 	"github.com/apache/answer/internal/base/pager"
 	"github.com/apache/answer/internal/entity"
 	"github.com/apache/answer/internal/schema"
 	answercommon "github.com/apache/answer/internal/service/answer_common"
+	"github.com/apache/answer/internal/service/collection"
 	"github.com/apache/answer/internal/service/comment"
 	"github.com/apache/answer/internal/service/content"
 	"github.com/apache/answer/internal/service/feature_toggle"
+	"github.com/apache/answer/internal/service/follow"
+	"github.com/apache/answer/internal/service/notification"
 	questioncommon "github.com/apache/answer/internal/service/question_common"
+	"github.com/apache/answer/internal/service/report"
 	"github.com/apache/answer/internal/service/siteinfo_common"
 	tagcommonser "github.com/apache/answer/internal/service/tag_common"
 	usercommon "github.com/apache/answer/internal/service/user_common"
@@ -41,14 +47,22 @@ import (
 )
 
 type MCPController struct {
-	searchService    *content.SearchService
-	siteInfoService  siteinfo_common.SiteInfoCommonService
-	tagCommonService *tagcommonser.TagCommonService
-	questioncommon   *questioncommon.QuestionCommon
-	commentRepo      comment.CommentRepo
-	userCommon       *usercommon.UserCommon
-	answerRepo       answercommon.AnswerRepo
-	featureToggleSvc *feature_toggle.FeatureToggleService
+	searchService        *content.SearchService
+	siteInfoService      siteinfo_common.SiteInfoCommonService
+	tagCommonService     *tagcommonser.TagCommonService
+	questioncommon       *questioncommon.QuestionCommon
+	commentRepo          comment.CommentRepo
+	userCommon           *usercommon.UserCommon
+	answerRepo           answercommon.AnswerRepo
+	featureToggleSvc     *feature_toggle.FeatureToggleService
+	questionService      *content.QuestionService
+	answerService        *content.AnswerService
+	commentService       *comment.CommentService
+	voteService          *content.VoteService
+	notificationService  *notification.NotificationService
+	collectionService    *collection.CollectionService
+	followService        *follow.FollowService
+	reportService        *report.ReportService
 }
 
 // NewMCPController new site info controller.
@@ -61,16 +75,32 @@ func NewMCPController(
 	userCommon *usercommon.UserCommon,
 	answerRepo answercommon.AnswerRepo,
 	featureToggleSvc *feature_toggle.FeatureToggleService,
+	questionService *content.QuestionService,
+	answerService *content.AnswerService,
+	commentService *comment.CommentService,
+	voteService *content.VoteService,
+	notificationService *notification.NotificationService,
+	collectionService *collection.CollectionService,
+	followService *follow.FollowService,
+	reportService *report.ReportService,
 ) *MCPController {
 	return &MCPController{
-		searchService:    searchService,
-		siteInfoService:  siteInfoService,
-		tagCommonService: tagCommonService,
-		questioncommon:   questioncommon,
-		commentRepo:      commentRepo,
-		userCommon:       userCommon,
-		answerRepo:       answerRepo,
-		featureToggleSvc: featureToggleSvc,
+		searchService:       searchService,
+		siteInfoService:     siteInfoService,
+		tagCommonService:    tagCommonService,
+		questioncommon:      questioncommon,
+		commentRepo:         commentRepo,
+		userCommon:          userCommon,
+		answerRepo:          answerRepo,
+		featureToggleSvc:    featureToggleSvc,
+		questionService:     questionService,
+		answerService:       answerService,
+		commentService:      commentService,
+		voteService:         voteService,
+		notificationService: notificationService,
+		collectionService:   collectionService,
+		followService:       followService,
+		reportService:       reportService,
 	}
 }
 
@@ -79,6 +109,20 @@ func (c *MCPController) ensureMCPEnabled(ctx context.Context) error {
 		return nil
 	}
 	return c.featureToggleSvc.EnsureEnabled(ctx, feature_toggle.FeatureMCP)
+}
+
+// getUserIDFromContext extracts user ID from context (set by API key auth middleware)
+func (c *MCPController) getUserIDFromContext(ctx context.Context) string {
+	if userID, ok := ctx.Value("mcp_user_id").(string); ok {
+		return userID
+	}
+	return ""
+}
+
+// isReadOnlyScope checks if the API key has read-only scope
+func (c *MCPController) isReadOnlyScope(ctx context.Context) bool {
+	scope, _ := ctx.Value("mcp_api_key_scope").(string)
+	return scope == "read-only"
 }
 
 func (c *MCPController) MCPQuestionsHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -161,26 +205,6 @@ func (c *MCPController) MCPAnswersHandler() func(ctx context.Context, request mc
 		if err != nil {
 			log.Errorf("get site general info failed: %v", err)
 			return nil, err
-		}
-
-		if len(cond.QuestionID) > 0 {
-			answerList, err := c.answerRepo.GetAnswerList(ctx, &entity.Answer{QuestionID: cond.QuestionID})
-			if err != nil {
-				log.Errorf("get answers failed: %v", err)
-				return nil, err
-			}
-			resp := make([]*schema.MCPSearchAnswerInfoResp, 0)
-			for _, answer := range answerList {
-				t := &schema.MCPSearchAnswerInfoResp{
-					QuestionID:    answer.QuestionID,
-					AnswerID:      answer.ID,
-					AnswerContent: answer.OriginalText,
-					Link:          fmt.Sprintf("%s/questions/%s/answers/%s", siteGeneral.SiteUrl, answer.QuestionID, answer.ID),
-				}
-				resp = append(resp, t)
-			}
-			data, _ := json.Marshal(resp)
-			return mcp.NewToolResultText(string(data)), nil
 		}
 
 		answerList, err := c.answerRepo.GetAnswerList(ctx, &entity.Answer{QuestionID: cond.QuestionID})
@@ -347,5 +371,858 @@ func (c *MCPController) MCPUserDetailsHandler() func(ctx context.Context, reques
 		}
 		res, _ := json.Marshal(resp)
 		return mcp.NewToolResultText(string(res)), nil
+	}
+}
+
+// Write operation handlers
+
+func (c *MCPController) MCPCreateQuestionHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		title, _ := args["title"].(string)
+		content, _ := args["content"].(string)
+		tagsInterface, _ := args["tags"].([]interface{})
+
+		// Convert tags
+		var tags []*schema.TagItem
+		for _, t := range tagsInterface {
+			if tagStr, ok := t.(string); ok {
+				tags = append(tags, &schema.TagItem{SlugName: tagStr})
+			}
+		}
+
+		req := &schema.QuestionAdd{
+			Title:   title,
+			Content: content,
+			HTML:    converter.Markdown2HTML(content),
+			Tags:    tags,
+			UserID:  userID,
+		}
+
+		resp, err := c.questionService.AddQuestion(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to create question: %v", err)), nil
+		}
+
+		result, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(result)), nil
+	}
+}
+
+func (c *MCPController) MCPUpdateQuestionHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		questionID, _ := args["question_id"].(string)
+		title, _ := args["title"].(string)
+		content, _ := args["content"].(string)
+		editSummary, _ := args["edit_summary"].(string)
+		tagsInterface, _ := args["tags"].([]interface{})
+
+		var tags []*schema.TagItem
+		for _, t := range tagsInterface {
+			if tagStr, ok := t.(string); ok {
+				tags = append(tags, &schema.TagItem{SlugName: tagStr})
+			}
+		}
+
+		req := &schema.QuestionUpdate{
+			ID:          questionID,
+			Title:       title,
+			Content:     content,
+			HTML:        converter.Markdown2HTML(content),
+			Tags:        tags,
+			EditSummary: editSummary,
+			UserID:      userID,
+		}
+
+		resp, err := c.questionService.UpdateQuestion(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to update question: %v", err)), nil
+		}
+
+		result, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(result)), nil
+	}
+}
+
+func (c *MCPController) MCPDeleteQuestionHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		questionID, _ := args["question_id"].(string)
+
+		req := &schema.RemoveQuestionReq{
+			ID:     questionID,
+			UserID: userID,
+		}
+
+		err := c.questionService.RemoveQuestion(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to delete question: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Question deleted successfully"), nil
+	}
+}
+
+func (c *MCPController) MCPCreateAnswerHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		questionID, _ := args["question_id"].(string)
+		content, _ := args["content"].(string)
+
+		req := &schema.AnswerAddReq{
+			QuestionID: questionID,
+			Content:    content,
+			HTML:       converter.Markdown2HTML(content),
+			UserID:     userID,
+		}
+
+		answerID, err := c.answerService.Insert(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to create answer: %v", err)), nil
+		}
+
+		result := map[string]string{"answer_id": answerID}
+		resultJSON, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(resultJSON)), nil
+	}
+}
+
+func (c *MCPController) MCPUpdateAnswerHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		answerID, _ := args["answer_id"].(string)
+		content, _ := args["content"].(string)
+		editSummary, _ := args["edit_summary"].(string)
+
+		req := &schema.AnswerUpdateReq{
+			ID:          answerID,
+			Content:     content,
+			HTML:        converter.Markdown2HTML(content),
+			EditSummary: editSummary,
+			UserID:      userID,
+		}
+
+		_, err := c.answerService.Update(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to update answer: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Answer updated successfully"), nil
+	}
+}
+
+func (c *MCPController) MCPDeleteAnswerHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		answerID, _ := args["answer_id"].(string)
+
+		req := &schema.RemoveAnswerReq{
+			ID:     answerID,
+			UserID: userID,
+		}
+
+		err := c.answerService.RemoveAnswer(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to delete answer: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Answer deleted successfully"), nil
+	}
+}
+
+func (c *MCPController) MCPCreateCommentHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		objectID, _ := args["object_id"].(string)
+		content, _ := args["content"].(string)
+
+		req := &schema.AddCommentReq{
+			ObjectID:            objectID,
+			OriginalText:        content,
+			ParsedText:          converter.Markdown2HTML(content),
+			UserID:              userID,
+			MentionUsernameList: []string{},
+		}
+
+		resp, err := c.commentService.AddComment(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to create comment: %v", err)), nil
+		}
+
+		result, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(result)), nil
+	}
+}
+
+func (c *MCPController) MCPUpdateCommentHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		commentID, _ := args["comment_id"].(string)
+		content, _ := args["content"].(string)
+
+		req := &schema.UpdateCommentReq{
+			CommentID:    commentID,
+			OriginalText: content,
+			ParsedText:   converter.Markdown2HTML(content),
+			UserID:       userID,
+		}
+
+		_, err := c.commentService.UpdateComment(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to update comment: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Comment updated successfully"), nil
+	}
+}
+
+func (c *MCPController) MCPDeleteCommentHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		commentID, _ := args["comment_id"].(string)
+
+		req := &schema.RemoveCommentReq{
+			CommentID: commentID,
+			UserID:    userID,
+		}
+
+		err := c.commentService.RemoveComment(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to delete comment: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Comment deleted successfully"), nil
+	}
+}
+
+func (c *MCPController) MCPVoteHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		objectID, _ := args["object_id"].(string)
+		voteType, _ := args["vote_type"].(string)
+		isCancel, _ := args["is_cancel"].(bool)
+
+		req := &schema.VoteReq{
+			ObjectID: objectID,
+			UserID:   userID,
+			IsCancel: isCancel,
+		}
+
+		var resp *schema.VoteResp
+		var err error
+
+		switch voteType {
+		case "up":
+			resp, err = c.voteService.VoteUp(ctx, req)
+		case "down":
+			resp, err = c.voteService.VoteDown(ctx, req)
+		default:
+			return mcp.NewToolResultError("Invalid vote_type. Must be 'up' or 'down'"), nil
+		}
+
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to vote: %v", err)), nil
+		}
+
+		result, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(result)), nil
+	}
+}
+
+// Notification handlers
+
+func (c *MCPController) MCPNotificationsHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+
+		args := request.GetArguments()
+		typeStr, _ := args[schema.MCPSearchCondNotificationType].(string)
+		inboxType, _ := args[schema.MCPSearchCondInboxType].(string)
+
+		if typeStr == "" {
+			typeStr = "inbox"
+		}
+
+		page := 1
+		pageSize := 10
+		if p, ok := args[schema.MCPSearchCondPage].(float64); ok && int(p) > 0 {
+			page = int(p)
+		}
+		if ps, ok := args[schema.MCPSearchCondPageSize].(float64); ok && int(ps) > 0 {
+			pageSize = int(ps)
+		}
+
+		searchCond := &schema.NotificationSearch{
+			Page:         page,
+			PageSize:     pageSize,
+			TypeStr:      typeStr,
+			InboxTypeStr: inboxType,
+			UserID:       userID,
+		}
+
+		pageModel, err := c.notificationService.GetNotificationPage(ctx, searchCond)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to get notifications: %v", err)), nil
+		}
+
+		data, _ := json.Marshal(pageModel)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func (c *MCPController) MCPUnreadCountHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+
+		req := &schema.GetRedDot{
+			UserID: userID,
+		}
+
+		redDot, err := c.notificationService.GetRedDot(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to get unread count: %v", err)), nil
+		}
+
+		resp := map[string]int64{
+			"inbox":       redDot.Inbox,
+			"achievement": redDot.Achievement,
+		}
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+func (c *MCPController) MCPMarkNotificationReadHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		notificationID, _ := args[schema.MCPSearchCondNotificationID].(string)
+		if notificationID == "" {
+			return mcp.NewToolResultError("notification_id is required"), nil
+		}
+
+		err := c.notificationService.ClearIDUnRead(ctx, userID, notificationID)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to mark notification as read: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Notification marked as read"), nil
+	}
+}
+
+func (c *MCPController) MCPMarkAllNotificationsReadHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		typeStr, _ := args[schema.MCPSearchCondNotificationType].(string)
+		if typeStr == "" {
+			return mcp.NewToolResultError("type is required (inbox or achievement)"), nil
+		}
+
+		err := c.notificationService.ClearUnRead(ctx, userID, typeStr)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to mark all notifications as read: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText(fmt.Sprintf("All %s notifications marked as read", typeStr)), nil
+	}
+}
+
+// Collection switch handler - add or remove question from personal collection
+
+func (c *MCPController) MCPCollectionSwitchHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		objectID, _ := args[schema.MCPSearchCondObjectID].(string)
+		if objectID == "" {
+			return mcp.NewToolResultError("object_id is required"), nil
+		}
+
+		bookmark := true
+		if b, ok := args[schema.MCPSearchCondBookmark].(bool); ok {
+			bookmark = b
+		}
+
+		groupID := ""
+		if g, ok := args[schema.MCPSearchCondGroupID].(string); ok {
+			groupID = g
+		}
+
+		// Use default group if not provided
+		if groupID == "" {
+			groupID = "0"
+		}
+
+		req := &schema.CollectionSwitchReq{
+			ObjectID: objectID,
+			Bookmark: bookmark,
+			GroupID:  groupID,
+			UserID:   userID,
+		}
+
+		resp, err := c.collectionService.CollectionSwitch(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to switch collection: %v", err)), nil
+		}
+
+		result := &schema.MCPSwitchCollectionResp{
+			ObjectCollectionCount: resp.ObjectCollectionCount,
+			Success:               true,
+			Message:              "Collection updated successfully",
+		}
+		if !bookmark {
+			result.Message = "Removed from collection successfully"
+		}
+
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// Get personal collections handler
+
+func (c *MCPController) MCPPersonalCollectionsHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+
+		args := request.GetArguments()
+		page := 1
+		pageSize := 10
+
+		if p, ok := args[schema.MCPSearchCondPage].(float64); ok && int(p) > 0 {
+			page = int(p)
+		}
+		if ps, ok := args[schema.MCPSearchCondPageSize].(float64); ok && int(ps) > 0 {
+			pageSize = int(ps)
+		}
+
+		req := &schema.PersonalCollectionPageReq{
+			Page:     page,
+			PageSize: pageSize,
+			UserID:   userID,
+		}
+
+		pageModel, err := c.questionService.PersonalCollectionPage(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to get personal collections: %v", err)), nil
+		}
+
+		data, _ := json.Marshal(pageModel)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// Follow/Unfollow handler
+
+func (c *MCPController) MCPFollowHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		objectID, _ := args[schema.MCPSearchCondObjectID].(string)
+		if objectID == "" {
+			return mcp.NewToolResultError("object_id is required"), nil
+		}
+
+		isCancel := false
+		if ic, ok := args[schema.MCPSearchCondIsCancel].(bool); ok {
+			isCancel = ic
+		}
+
+		dto := &schema.FollowDTO{
+			ObjectID: objectID,
+			IsCancel: isCancel,
+			UserID:   userID,
+		}
+
+		resp, err := c.followService.Follow(ctx, dto)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to follow/unfollow: %v", err)), nil
+		}
+
+		result := &schema.MCPFollowResp{
+			IsFollowed: resp.IsFollowed,
+			Follows:    int64(resp.Follows),
+		}
+		data, _ := json.Marshal(result)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// Accept answer handler
+
+func (c *MCPController) MCPAcceptAnswerHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		questionID, _ := args[schema.MCPSearchCondQuestionID].(string)
+		answerID, _ := args[schema.MCPSearchCondAnswerID].(string)
+
+		if questionID == "" || answerID == "" {
+			return mcp.NewToolResultError("question_id and answer_id are required"), nil
+		}
+
+		req := &schema.AcceptAnswerReq{
+			QuestionID: questionID,
+			AnswerID:   answerID,
+			UserID:     userID,
+		}
+
+		err := c.answerService.AcceptAnswer(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to accept answer: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Answer accepted successfully"), nil
+	}
+}
+
+// Get question detail handler
+
+func (c *MCPController) MCPGetQuestionDetailHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		args := request.GetArguments()
+		questionID, _ := args[schema.MCPSearchCondQuestionID].(string)
+		if questionID == "" {
+			return mcp.NewToolResultError("question_id is required"), nil
+		}
+
+		siteGeneral, err := c.siteInfoService.GetSiteGeneral(ctx)
+		if err != nil {
+			log.Errorf("get site general info failed: %v", err)
+			return nil, err
+		}
+
+		// Get user ID from context if authenticated
+		userID := c.getUserIDFromContext(ctx)
+
+		question, err := c.questioncommon.Info(ctx, questionID, userID)
+		if err != nil {
+			log.Errorf("get question failed: %v", err)
+			return mcp.NewToolResultText("No question found."), nil
+		}
+
+		resp := map[string]interface{}{
+			"question_id":       question.ID,
+			"title":             question.Title,
+			"content":           question.Content,
+			"html":              question.HTML,
+			"link":              fmt.Sprintf("%s/questions/%s", siteGeneral.SiteUrl, question.ID),
+			"vote_count":       question.VoteCount,
+			"answer_count":     question.AnswerCount,
+			"view_count":       question.ViewCount,
+			"status":           question.Status,
+			"accepted_answer_id": question.AcceptedAnswerID,
+			"create_time":       question.CreateTime,
+			"update_time":       question.PostUpdateTime,
+			"tags":             question.Tags,
+			"user_info":        question.UserInfo,
+			"collected":        question.Collected,
+			"is_followed":      question.IsFollowed,
+			"vote_status":      question.VoteStatus,
+		}
+
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// Get answer detail handler
+
+func (c *MCPController) MCPGetAnswerDetailHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		args := request.GetArguments()
+		answerID, _ := args[schema.MCPSearchCondAnswerID].(string)
+		if answerID == "" {
+			return mcp.NewToolResultError("answer_id is required"), nil
+		}
+
+		siteGeneral, err := c.siteInfoService.GetSiteGeneral(ctx)
+		if err != nil {
+			log.Errorf("get site general info failed: %v", err)
+			return nil, err
+		}
+
+		answer, err := c.answerService.GetDetail(ctx, answerID)
+		if err != nil {
+			log.Errorf("get answer failed: %v", err)
+			return mcp.NewToolResultText("No answer found."), nil
+		}
+		if answer == nil {
+			return mcp.NewToolResultText("Answer not found."), nil
+		}
+
+		// Get question title via questioncommon.Info
+		questionInfo, err := c.questioncommon.Info(ctx, answer.QuestionID, "")
+		if err != nil {
+			log.Errorf("get question info failed: %v", err)
+		}
+
+		resp := map[string]interface{}{
+			"answer_id":      answer.ID,
+			"question_id":    answer.QuestionID,
+			"content":        answer.Content,
+			"parsed_content": answer.HTML,
+			"link":           fmt.Sprintf("%s/questions/%s/answers/%s", siteGeneral.SiteUrl, answer.QuestionID, answer.ID),
+			"vote_count":    answer.VoteCount,
+			"status":        answer.Status,
+			"is_accepted":   answer.Accepted,
+			"created_at":    answer.CreateTime,
+			"updated_at":    answer.UpdateTime,
+			"user_info":     answer.UserInfo,
+		}
+
+		if questionInfo != nil {
+			resp["question_title"] = questionInfo.Title
+		}
+
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// Report content handler
+
+func (c *MCPController) MCPReportContentHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+
+		args := request.GetArguments()
+		objectID, _ := args[schema.MCPSearchCondObjectID].(string)
+		reportTypeVal, _ := args[schema.MCPSearchCondReportType].(float64)
+		content, _ := args[schema.MCPSearchCondContent].(string)
+
+		if objectID == "" || reportTypeVal == 0 {
+			return mcp.NewToolResultError("object_id and report_type are required"), nil
+		}
+
+		req := &schema.AddReportReq{
+			ObjectID:   objectID,
+			ReportType: int(reportTypeVal),
+			Content:    content,
+			UserID:     userID,
+		}
+
+		err := c.reportService.AddReport(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to report content: %v", err)), nil
+		}
+
+		return mcp.NewToolResultText("Content reported successfully"), nil
 	}
 }

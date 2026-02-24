@@ -18,8 +18,8 @@
 version: "3"
 services:
   answer:
-    build: .
-    container_name: answer-dev
+    image: git.pku.edu.cn/2200011523/answer:latest
+    container_name: answer-prod
     ports:
       - '9080:80'
     restart: on-failure

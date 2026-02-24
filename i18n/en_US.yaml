@@ -1323,6 +1323,7 @@ ui:
       notification: Notifications
       account: Account
       interface: Interface
+      api_keys: API Keys
     profile:
       heading: Profile
       btn_name: Save
@@ -1403,6 +1404,34 @@ ui:
       modal_content: Are you sure you want to remove this login from your account?
       modal_confirm_btn: Remove
       remove_success: Removed successfully
+    api_keys:
+      title: API Keys
+      description: API keys allow you to authenticate with the MCP server and perform operations programmatically.
+      create: Create New API Key
+      create_modal_title: Create API Key
+      name: Name
+      name_placeholder: Enter a descriptive name for this key
+      name_required: Name is required
+      desc: Description
+      description_placeholder: What will this key be used for?
+      key: Key
+      created_at: Created
+      last_used: Last Used
+      actions: Actions
+      delete: Delete
+      cancel: Cancel
+      save: Create
+      confirm_delete: Are you sure you want to delete the API key "{{name}}"?
+      delete_success: API key deleted successfully
+      created_success: API key created successfully!
+      save_key_warning: Make sure to copy your API key now. You won't be able to see it again!
+      no_keys: You don't have any API keys yet. Create one to get started.
+      never: Never
+      copy: Copy
+      copied: Copied to clipboard
+      mcp_info_title: MCP Server Connection
+      mcp_info_desc: Use the following endpoint to connect your MCP client to this server.
+      mcp_auth_desc: "Authenticate by adding your API key as a Bearer token in the Authorization header: Authorization: Bearer <your-api-key>"
   toast:
     update: update success
     update_password: Password changed successfully.

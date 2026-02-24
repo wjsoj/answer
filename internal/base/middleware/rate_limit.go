@@ -22,6 +22,8 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/apache/answer/internal/base/handler"
 	"github.com/apache/answer/internal/base/reason"
@@ -69,5 +71,94 @@ func (rm *RateLimitMiddleware) DuplicateRequestClear(ctx *gin.Context, key strin
 	err := rm.limitRepo.ClearRecord(ctx, key)
 	if err != nil {
 		log.Errorf("clear rate limit error: %s", err.Error())
+	}
+}
+
+// MCP Rate Limiter
+type mcpRateLimiter struct {
+	requests map[string][]time.Time
+	mu       sync.RWMutex
+	limit    int
+	window   time.Duration
+}
+
+var mcpLimiter = &mcpRateLimiter{
+	requests: make(map[string][]time.Time),
+	limit:    100, // 100 requests per minute
+	window:   time.Minute,
+}
+
+func init() {
+	// Cleanup old entries every minute
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			mcpLimiter.cleanup()
+		}
+	}()
+}
+
+func (rl *mcpRateLimiter) cleanup() {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+	for key, times := range rl.requests {
+		var valid []time.Time
+		for _, t := range times {
+			if now.Sub(t) < rl.window {
+				valid = append(valid, t)
+			}
+		}
+		if len(valid) == 0 {
+			delete(rl.requests, key)
+		} else {
+			rl.requests[key] = valid
+		}
+	}
+}
+
+func (rl *mcpRateLimiter) allow(key string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+	times := rl.requests[key]
+
+	var valid []time.Time
+	for _, t := range times {
+		if now.Sub(t) < rl.window {
+			valid = append(valid, t)
+		}
+	}
+
+	if len(valid) >= rl.limit {
+		return false
+	}
+
+	valid = append(valid, now)
+	rl.requests[key] = valid
+	return true
+}
+
+// RateLimitMCP rate limits MCP requests per API key
+func RateLimitMCP() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		apiKeyID, exists := ctx.Get("mcp_api_key_id")
+		key := ""
+		if exists {
+			key = fmt.Sprintf("mcp_%v", apiKeyID)
+		} else {
+			key = fmt.Sprintf("mcp_ip_%s", ctx.ClientIP())
+		}
+
+		if !mcpLimiter.allow(key) {
+			handler.HandleResponse(ctx, errors.Forbidden(reason.ForbiddenError), nil)
+			ctx.Abort()
+			return
+		}
+
+		ctx.Next()
 	}
 }

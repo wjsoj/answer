@@ -20,6 +20,10 @@
 package middleware
 
 import (
+	"context"
+	"strings"
+	"time"
+
 	"github.com/apache/answer/internal/base/handler"
 	"github.com/apache/answer/internal/base/reason"
 	"github.com/gin-gonic/gin"
@@ -35,17 +39,44 @@ func (am *AuthUserMiddleware) AuthAPIKey() gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
-		pass, err := am.authService.AuthAPIKey(ctx, ctx.Request.Method == "GET", token)
-		if err != nil {
+
+		// Get API Key information including user ID
+		apiKey, err := am.authService.GetAPIKeyWithUser(ctx, token)
+		if err != nil || apiKey == nil {
 			handler.HandleResponse(ctx, errors.Unauthorized(reason.UnauthorizedError), nil)
 			ctx.Abort()
 			return
 		}
-		if !pass {
+
+		// Check if API key has expired
+		if !apiKey.ExpiresAt.IsZero() && apiKey.ExpiresAt.Before(time.Now()) {
 			handler.HandleResponse(ctx, errors.Unauthorized(reason.UnauthorizedError), nil)
 			ctx.Abort()
 			return
 		}
+
+		// Verify scope permissions - only applies to non-MCP routes (MCP uses POST for everything)
+		isMCPRequest := strings.HasSuffix(ctx.Request.URL.Path, "/mcp")
+		if !isMCPRequest && ctx.Request.Method != "GET" && apiKey.Scope == "read-only" {
+			handler.HandleResponse(ctx, errors.Forbidden(reason.UnauthorizedError), nil)
+			ctx.Abort()
+			return
+		}
+
+		// Update usage count and last used time asynchronously
+		go am.authService.UpdateAPIKeyUsage(ctx, apiKey.ID)
+
+		// Inject user information into gin context
+		ctx.Set("mcp_user_id", apiKey.UserID)
+		ctx.Set("mcp_api_key_id", apiKey.ID)
+		ctx.Set("mcp_api_key_scope", apiKey.Scope)
+
+		// Also inject into request's standard context so mcp-go handlers can read it
+		reqCtx := context.WithValue(ctx.Request.Context(), "mcp_user_id", apiKey.UserID)
+		reqCtx = context.WithValue(reqCtx, "mcp_api_key_id", apiKey.ID)
+		reqCtx = context.WithValue(reqCtx, "mcp_api_key_scope", apiKey.Scope)
+		ctx.Request = ctx.Request.WithContext(reqCtx)
+
 		ctx.Next()
 	}
 }

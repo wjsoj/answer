@@ -58,3 +58,39 @@ type DeleteAPIKeyReq struct {
 	ID     int    `json:"id"`
 	UserID string `json:"-"`
 }
+
+// GetUserAPIKeysResp get user api keys response
+type GetUserAPIKeysResp struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	AccessKey   string `json:"access_key"`
+	Description string `json:"description"`
+	CreatedAt   int64  `json:"created_at"`
+	LastUsedAt  int64  `json:"last_used_at"`
+	ExpiresAt   int64  `json:"expires_at,omitempty"`
+	UsageCount  int64  `json:"usage_count"`
+}
+
+// AddUserAPIKeyReq add user api key request
+type AddUserAPIKeyReq struct {
+	Name        string `validate:"required,notblank,lte=50" json:"name"`
+	Description string `validate:"omitempty,lte=200" json:"description"`
+	ExpiresIn   int    `validate:"omitempty,min=0" json:"expires_in"` // Days until expiration, 0 = never expires
+}
+
+// AddUserAPIKeyResp add user api key response
+type AddUserAPIKeyResp struct {
+	AccessKey string `json:"access_key"`
+}
+
+// UpdateUserAPIKeyReq update user api key request
+type UpdateUserAPIKeyReq struct {
+	ID          int    `json:"id"`
+	Name        string `validate:"required,notblank,lte=50" json:"name"`
+	Description string `validate:"omitempty,lte=200" json:"description"`
+}
+
+// DeleteUserAPIKeyReq delete user api key request
+type DeleteUserAPIKeyReq struct {
+	ID int `validate:"required" json:"id"`
+}

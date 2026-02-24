@@ -27,15 +27,25 @@ import (
 )
 
 const (
-	MCPSearchCondKeyword    = "keyword"
-	MCPSearchCondUsername   = "username"
-	MCPSearchCondScore      = "score"
-	MCPSearchCondTag        = "tag"
-	MCPSearchCondPage       = "page"
-	MCPSearchCondPageSize   = "page_size"
-	MCPSearchCondTagName    = "tag_name"
-	MCPSearchCondQuestionID = "question_id"
-	MCPSearchCondObjectID   = "object_id"
+	MCPSearchCondKeyword          = "keyword"
+	MCPSearchCondUsername         = "username"
+	MCPSearchCondScore            = "score"
+	MCPSearchCondTag              = "tag"
+	MCPSearchCondPage             = "page"
+	MCPSearchCondPageSize         = "page_size"
+	MCPSearchCondTagName          = "tag_name"
+	MCPSearchCondQuestionID       = "question_id"
+	MCPSearchCondObjectID         = "object_id"
+	MCPSearchCondNotificationType = "type"
+	MCPSearchCondInboxType        = "inbox_type"
+	MCPSearchCondNotificationID   = "notification_id"
+	MCPSearchCondAnswerID         = "answer_id"
+	MCPSearchCondReportType       = "report_type"
+	MCPSearchCondContent          = "content"
+	MCPSearchCondIsCancel         = "is_cancel"
+	MCPSearchCondBookmark         = "bookmark"
+	MCPSearchCondGroupID          = "group_id"
+	MCPSearchCondSource           = "source"
 )
 
 type MCPSearchCond struct {
@@ -110,7 +120,7 @@ func NewMCPSearchCond(request mcp.CallToolRequest) *MCPSearchCond {
 		cond.Score = score
 	}
 	if tag, ok := getRequestValue(request, MCPSearchCondTag); ok {
-		cond.Tags = strings.Split(tag, ",")
+		cond.Tags = strings.Split(tag, ";")
 	}
 	if questionID, ok := getRequestValue(request, MCPSearchCondQuestionID); ok {
 		cond.QuestionID = questionID
@@ -191,4 +201,103 @@ func (cond *MCPSearchCond) ToQueryString() string {
 		}
 	}
 	return strings.TrimSpace(queryBuilder.String())
+}
+
+// New MCP request structures
+
+type MCPSwitchCollectionReq struct {
+	ObjectID  string `json:"object_id"`
+	Bookmark  bool   `json:"bookmark"`
+	GroupID   string `json:"group_id"`
+	UserID    string `json:"-"`
+}
+
+type MCPSwitchCollectionResp struct {
+	ObjectCollectionCount int64  `json:"object_collection_count"`
+	Success               bool   `json:"success"`
+	Message              string `json:"message"`
+}
+
+type MCPFollowReq struct {
+	ObjectID string `json:"object_id"`
+	IsCancel bool   `json:"is_cancel"`
+	UserID   string `json:"-"`
+}
+
+type MCPFollowResp struct {
+	IsFollowed bool  `json:"is_followed"`
+	Follows    int64 `json:"follows"`
+}
+
+type MCPAcceptAnswerReq struct {
+	QuestionID string `json:"question_id"`
+	AnswerID   string `json:"answer_id"`
+	UserID     string `json:"-"`
+}
+
+type MCPReportReq struct {
+	ObjectID   string `json:"object_id"`
+	ReportType string `json:"report_type"`
+	Content    string `json:"content"`
+	UserID     string `json:"-"`
+}
+
+func NewMCPSwitchCollectionReq(request mcp.CallToolRequest) *MCPSwitchCollectionReq {
+	cond := &MCPSwitchCollectionReq{}
+	if objectID, ok := getRequestValue(request, MCPSearchCondObjectID); ok {
+		cond.ObjectID = objectID
+	}
+	if bookmark, ok := getRequestBool(request, MCPSearchCondBookmark); ok {
+		cond.Bookmark = bookmark
+	} else {
+		cond.Bookmark = true // Default to bookmark (add to collection)
+	}
+	if groupID, ok := getRequestValue(request, MCPSearchCondGroupID); ok {
+		cond.GroupID = groupID
+	}
+	return cond
+}
+
+func NewMCPFollowReq(request mcp.CallToolRequest) *MCPFollowReq {
+	cond := &MCPFollowReq{}
+	if objectID, ok := getRequestValue(request, MCPSearchCondObjectID); ok {
+		cond.ObjectID = objectID
+	}
+	if isCancel, ok := getRequestBool(request, MCPSearchCondIsCancel); ok {
+		cond.IsCancel = isCancel
+	}
+	return cond
+}
+
+func NewMCPAcceptAnswerReq(request mcp.CallToolRequest) *MCPAcceptAnswerReq {
+	cond := &MCPAcceptAnswerReq{}
+	if questionID, ok := getRequestValue(request, MCPSearchCondQuestionID); ok {
+		cond.QuestionID = questionID
+	}
+	if answerID, ok := getRequestValue(request, MCPSearchCondAnswerID); ok {
+		cond.AnswerID = answerID
+	}
+	return cond
+}
+
+func NewMCPReportReq(request mcp.CallToolRequest) *MCPReportReq {
+	cond := &MCPReportReq{}
+	if objectID, ok := getRequestValue(request, MCPSearchCondObjectID); ok {
+		cond.ObjectID = objectID
+	}
+	if reportType, ok := getRequestValue(request, MCPSearchCondReportType); ok {
+		cond.ReportType = reportType
+	}
+	if content, ok := getRequestValue(request, MCPSearchCondContent); ok {
+		cond.Content = content
+	}
+	return cond
+}
+
+func getRequestBool(request mcp.CallToolRequest, key string) (bool, bool) {
+	value, ok := request.GetArguments()[key].(bool)
+	if !ok {
+		return false, false
+	}
+	return value, true
 }

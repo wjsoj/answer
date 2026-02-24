@@ -62,6 +62,7 @@ type AnswerAPIRouter struct {
 	aiConversationController      *controller.AIConversationController
 	aiConversationAdminController *controller_admin.AIConversationAdminController
 	mcpController                 *controller.MCPController
+	userAPIKeyController          *controller.APIKeyController
 }
 
 func NewAnswerAPIRouter(
@@ -100,6 +101,7 @@ func NewAnswerAPIRouter(
 	aiConversationController *controller.AIConversationController,
 	aiConversationAdminController *controller_admin.AIConversationAdminController,
 	mcpController *controller.MCPController,
+	userAPIKeyController *controller.APIKeyController,
 ) *AnswerAPIRouter {
 	return &AnswerAPIRouter{
 		langController:                langController,
@@ -137,6 +139,7 @@ func NewAnswerAPIRouter(
 		aiConversationController:      aiConversationController,
 		aiConversationAdminController: aiConversationAdminController,
 		mcpController:                 mcpController,
+		userAPIKeyController:          userAPIKeyController,
 	}
 }
 
@@ -436,4 +439,12 @@ func (a *AnswerAPIRouter) RegisterAnswerAdminAPIRouter(r *gin.RouterGroup) {
 	r.GET("/ai/conversation/page", a.aiConversationAdminController.GetConversationList)
 	r.GET("/ai/conversation", a.aiConversationAdminController.GetConversationDetail)
 	r.DELETE("/ai/conversation", a.aiConversationAdminController.DeleteConversation)
+}
+
+// RegisterUserAPIKeyRouter registers user API key management routes
+func (a *AnswerAPIRouter) RegisterUserAPIKeyRouter(r *gin.RouterGroup) {
+	r.GET("/user/api-keys", a.userAPIKeyController.GetUserAPIKeys)
+	r.POST("/user/api-keys", a.userAPIKeyController.CreateUserAPIKey)
+	r.PUT("/user/api-keys/:id", a.userAPIKeyController.UpdateUserAPIKey)
+	r.DELETE("/user/api-keys/:id", a.userAPIKeyController.DeleteUserAPIKey)
 }

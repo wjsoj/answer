@@ -31,10 +31,15 @@ import (
 
 type APIKeyRepo interface {
 	GetAPIKeyList(ctx context.Context) (keys []*entity.APIKey, err error)
+	GetUserAPIKeyList(ctx context.Context, userID string) (keys []*entity.APIKey, err error)
+	GetUserAPIKeyByID(ctx context.Context, id int, userID string) (key *entity.APIKey, exist bool, err error)
 	GetAPIKey(ctx context.Context, apiKey string) (key *entity.APIKey, exist bool, err error)
 	UpdateAPIKey(ctx context.Context, apiKey entity.APIKey) (err error)
+	UpdateUserAPIKey(ctx context.Context, apiKey entity.APIKey, userID string) (err error)
 	AddAPIKey(ctx context.Context, apiKey entity.APIKey) (err error)
 	DeleteAPIKey(ctx context.Context, id int) (err error)
+	DeleteUserAPIKey(ctx context.Context, id int, userID string) (err error)
+	UpdateAPIKeyUsage(ctx context.Context, apiKeyID int) (err error)
 }
 
 type APIKeyService struct {
@@ -109,6 +114,97 @@ func (s *APIKeyService) AddAPIKey(ctx context.Context, req *schema.AddAPIKeyReq)
 
 func (s *APIKeyService) DeleteAPIKey(ctx context.Context, req *schema.DeleteAPIKeyReq) (err error) {
 	err = s.apiKeyRepo.DeleteAPIKey(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *APIKeyService) GetUserAPIKeyList(ctx context.Context, userID string) (resp []*schema.GetUserAPIKeysResp, err error) {
+	keys, err := s.apiKeyRepo.GetUserAPIKeyList(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	resp = make([]*schema.GetUserAPIKeysResp, 0)
+	for _, key := range keys {
+		// hide access key middle part, replace with *
+		maskedKey := key.AccessKey
+		if len(key.AccessKey) < 10 {
+			maskedKey = strings.Repeat("*", len(key.AccessKey))
+		} else {
+			maskedKey = key.AccessKey[:7] + strings.Repeat("*", 8) + key.AccessKey[len(key.AccessKey)-4:]
+		}
+
+		expiresAt := int64(0)
+		if !key.ExpiresAt.IsZero() {
+			expiresAt = key.ExpiresAt.Unix()
+		}
+
+		resp = append(resp, &schema.GetUserAPIKeysResp{
+			ID:          key.ID,
+			Name:        key.Name,
+			AccessKey:   maskedKey,
+			Description: key.Description,
+			CreatedAt:   key.CreatedAt.Unix(),
+			LastUsedAt:  key.LastUsedAt.Unix(),
+			ExpiresAt:   expiresAt,
+			UsageCount:  key.UsageCount,
+		})
+	}
+	return resp, nil
+}
+
+func (s *APIKeyService) AddUserAPIKey(ctx context.Context, userID string, req *schema.AddUserAPIKeyReq) (resp *schema.AddUserAPIKeyResp, err error) {
+	ak := "sk_" + strings.ReplaceAll(token.GenerateToken(), "-", "")
+	apiKey := entity.APIKey{
+		Name:        req.Name,
+		Description: req.Description,
+		AccessKey:   ak,
+		Scope:       "read_write",
+		LastUsedAt:  time.Now(),
+		UserID:      userID,
+		UsageCount:  0,
+	}
+
+	// Set expiration if specified
+	if req.ExpiresIn > 0 {
+		apiKey.ExpiresAt = time.Now().AddDate(0, 0, req.ExpiresIn)
+	}
+
+	err = s.apiKeyRepo.AddAPIKey(ctx, apiKey)
+	if err != nil {
+		return nil, err
+	}
+	resp = &schema.AddUserAPIKeyResp{
+		AccessKey: apiKey.AccessKey,
+	}
+	return resp, nil
+}
+
+func (s *APIKeyService) UpdateUserAPIKey(ctx context.Context, userID string, req *schema.UpdateUserAPIKeyReq) (err error) {
+	// Verify ownership
+	_, exist, err := s.apiKeyRepo.GetUserAPIKeyByID(ctx, req.ID, userID)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return nil
+	}
+
+	apiKey := entity.APIKey{
+		ID:          req.ID,
+		Name:        req.Name,
+		Description: req.Description,
+	}
+	err = s.apiKeyRepo.UpdateUserAPIKey(ctx, apiKey, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *APIKeyService) DeleteUserAPIKey(ctx context.Context, userID string, id int) (err error) {
+	err = s.apiKeyRepo.DeleteUserAPIKey(ctx, id, userID)
 	if err != nil {
 		return err
 	}

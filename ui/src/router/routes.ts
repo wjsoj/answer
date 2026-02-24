@@ -203,6 +203,10 @@ const routes: RouteNode[] = [
                 page: 'pages/Users/Settings/Interface',
               },
               {
+                path: 'api-keys',
+                page: 'pages/Users/Settings/ApiKeys',
+              },
+              {
                 path: ':slug_name',
                 page: 'pages/Users/Settings/Plugins',
               },

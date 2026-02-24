@@ -49,6 +49,24 @@ func (ar *apiKeyRepo) GetAPIKeyList(ctx context.Context) (keys []*entity.APIKey,
 	return
 }
 
+func (ar *apiKeyRepo) GetUserAPIKeyList(ctx context.Context, userID string) (keys []*entity.APIKey, err error) {
+	keys = make([]*entity.APIKey, 0)
+	err = ar.data.DB.Context(ctx).Where("user_id = ? AND hidden = ?", userID, 0).Find(&keys)
+	if err != nil {
+		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	return
+}
+
+func (ar *apiKeyRepo) GetUserAPIKeyByID(ctx context.Context, id int, userID string) (key *entity.APIKey, exist bool, err error) {
+	key = &entity.APIKey{}
+	exist, err = ar.data.DB.Context(ctx).Where("id = ? AND user_id = ?", id, userID).Get(key)
+	if err != nil {
+		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	return
+}
+
 func (ar *apiKeyRepo) GetAPIKey(ctx context.Context, apiKey string) (key *entity.APIKey, exist bool, err error) {
 	key = &entity.APIKey{}
 	exist, err = ar.data.DB.Context(ctx).Where("access_key = ?", apiKey).Get(key)
@@ -66,6 +84,14 @@ func (ar *apiKeyRepo) UpdateAPIKey(ctx context.Context, apiKey entity.APIKey) (e
 	return
 }
 
+func (ar *apiKeyRepo) UpdateUserAPIKey(ctx context.Context, apiKey entity.APIKey, userID string) (err error) {
+	_, err = ar.data.DB.Context(ctx).Where("id = ? AND user_id = ?", apiKey.ID, userID).Update(&apiKey)
+	if err != nil {
+		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	return
+}
+
 func (ar *apiKeyRepo) AddAPIKey(ctx context.Context, apiKey entity.APIKey) (err error) {
 	_, err = ar.data.DB.Context(ctx).Insert(&apiKey)
 	if err != nil {
@@ -76,6 +102,25 @@ func (ar *apiKeyRepo) AddAPIKey(ctx context.Context, apiKey entity.APIKey) (err 
 
 func (ar *apiKeyRepo) DeleteAPIKey(ctx context.Context, id int) (err error) {
 	_, err = ar.data.DB.Context(ctx).ID(id).Delete(&entity.APIKey{})
+	if err != nil {
+		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	return
+}
+
+func (ar *apiKeyRepo) DeleteUserAPIKey(ctx context.Context, id int, userID string) (err error) {
+	_, err = ar.data.DB.Context(ctx).Where("id = ? AND user_id = ?", id, userID).Delete(&entity.APIKey{})
+	if err != nil {
+		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+	}
+	return
+}
+
+func (ar *apiKeyRepo) UpdateAPIKeyUsage(ctx context.Context, apiKeyID int) (err error) {
+	_, err = ar.data.DB.Context(ctx).Exec(
+		"UPDATE api_key SET usage_count = usage_count + 1, last_used_at = NOW() WHERE id = ?",
+		apiKeyID,
+	)
 	if err != nil {
 		err = errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
 	}

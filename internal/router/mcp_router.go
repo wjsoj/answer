@@ -20,14 +20,16 @@
 package router
 
 import (
+	"github.com/apache/answer/internal/base/middleware"
 	"github.com/apache/answer/internal/schema/mcp_tools"
 	"github.com/gin-gonic/gin"
 	"github.com/mark3labs/mcp-go/server"
 )
 
 func (a *AnswerAPIRouter) RegisterMCPRouter(r *gin.RouterGroup) {
-	s := server.NewMCPServer("Answer Enterprise MCP Server", "1.0.0")
+	s := server.NewMCPServer("Answer Agent Forum MCP Server", "2.0.0")
 
+	// Register read-only tools
 	s.AddTool(mcp_tools.NewQuestionsTool(), a.mcpController.MCPQuestionsHandler())
 	s.AddTool(mcp_tools.NewAnswersTool(), a.mcpController.MCPAnswersHandler())
 	s.AddTool(mcp_tools.NewCommentsTool(), a.mcpController.MCPCommentsHandler())
@@ -35,10 +37,39 @@ func (a *AnswerAPIRouter) RegisterMCPRouter(r *gin.RouterGroup) {
 	s.AddTool(mcp_tools.NewTagDetailTool(), a.mcpController.MCPTagDetailsHandler())
 	s.AddTool(mcp_tools.NewUserTool(), a.mcpController.MCPUserDetailsHandler())
 
-	sseServer := server.NewSSEServer(s,
-		server.WithSSEEndpoint("/answer/api/v1/mcp/see"),
-		server.WithMessageEndpoint("/answer/api/v1/mcp/message"),
+	// Register write operation tools
+	s.AddTool(mcp_tools.NewCreateQuestionTool(), a.mcpController.MCPCreateQuestionHandler())
+	s.AddTool(mcp_tools.NewUpdateQuestionTool(), a.mcpController.MCPUpdateQuestionHandler())
+	s.AddTool(mcp_tools.NewDeleteQuestionTool(), a.mcpController.MCPDeleteQuestionHandler())
+	s.AddTool(mcp_tools.NewCreateAnswerTool(), a.mcpController.MCPCreateAnswerHandler())
+	s.AddTool(mcp_tools.NewUpdateAnswerTool(), a.mcpController.MCPUpdateAnswerHandler())
+	s.AddTool(mcp_tools.NewDeleteAnswerTool(), a.mcpController.MCPDeleteAnswerHandler())
+	s.AddTool(mcp_tools.NewCreateCommentTool(), a.mcpController.MCPCreateCommentHandler())
+	s.AddTool(mcp_tools.NewUpdateCommentTool(), a.mcpController.MCPUpdateCommentHandler())
+	s.AddTool(mcp_tools.NewDeleteCommentTool(), a.mcpController.MCPDeleteCommentHandler())
+	s.AddTool(mcp_tools.NewVoteTool(), a.mcpController.MCPVoteHandler())
+
+	// Register notification tools
+	s.AddTool(mcp_tools.NewNotificationsTool(), a.mcpController.MCPNotificationsHandler())
+	s.AddTool(mcp_tools.NewUnreadCountTool(), a.mcpController.MCPUnreadCountHandler())
+	s.AddTool(mcp_tools.NewMarkNotificationReadTool(), a.mcpController.MCPMarkNotificationReadHandler())
+	s.AddTool(mcp_tools.NewMarkAllNotificationsReadTool(), a.mcpController.MCPMarkAllNotificationsReadHandler())
+
+	// Register new user feature tools
+	s.AddTool(mcp_tools.NewCollectionSwitchTool(), a.mcpController.MCPCollectionSwitchHandler())
+	s.AddTool(mcp_tools.NewPersonalCollectionsTool(), a.mcpController.MCPPersonalCollectionsHandler())
+	s.AddTool(mcp_tools.NewFollowTool(), a.mcpController.MCPFollowHandler())
+	s.AddTool(mcp_tools.NewAcceptAnswerTool(), a.mcpController.MCPAcceptAnswerHandler())
+	s.AddTool(mcp_tools.NewGetQuestionDetailTool(), a.mcpController.MCPGetQuestionDetailHandler())
+	s.AddTool(mcp_tools.NewGetAnswerDetailTool(), a.mcpController.MCPGetAnswerDetailHandler())
+	s.AddTool(mcp_tools.NewReportContentTool(), a.mcpController.MCPReportContentHandler())
+
+	// Use Streamable HTTP transport
+	httpServer := server.NewStreamableHTTPServer(s,
+		server.WithEndpointPath("/answer/api/v1/mcp"),
+		server.WithStateLess(false),
 	)
-	r.GET("/mcp/sse", gin.WrapH(sseServer.SSEHandler()))
-	r.POST("/mcp/message", gin.WrapH(sseServer.MessageHandler()))
+
+	// Register single POST endpoint with rate limiting and authentication middleware
+	r.POST("/mcp", middleware.RateLimitMCP(), gin.WrapH(httpServer))
 }

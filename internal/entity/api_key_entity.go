@@ -29,10 +29,13 @@ type APIKey struct {
 	CreatedAt   time.Time `xorm:"created not null default CURRENT_TIMESTAMP TIMESTAMP created_at"`
 	UpdatedAt   time.Time `xorm:"updated not null default CURRENT_TIMESTAMP TIMESTAMP updated_at"`
 	LastUsedAt  time.Time `xorm:"not null default CURRENT_TIMESTAMP TIMESTAMP last_used_at"`
+	ExpiresAt   time.Time `xorm:"TIMESTAMP expires_at"`
+	Name        string    `xorm:"not null default '' VARCHAR(100) name"`
 	Description string    `xorm:"not null MEDIUMTEXT description"`
 	AccessKey   string    `xorm:"not null unique VARCHAR(255) access_key"`
 	Scope       string    `xorm:"not null VARCHAR(255) scope"`
 	UserID      string    `xorm:"not null default 0 BIGINT(20) user_id"`
+	UsageCount  int64     `xorm:"not null default 0 BIGINT(20) usage_count"`
 	Hidden      int       `xorm:"not null default 0 INT(11) hidden"`
 }
 
