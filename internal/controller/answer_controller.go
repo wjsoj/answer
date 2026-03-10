@@ -308,6 +308,8 @@ func (ac *AnswerController) UpdateAnswer(ctx *gin.Context) {
 		return
 	}
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
+	req.IP = ctx.ClientIP()
+	req.UserAgent = ctx.Request.UserAgent()
 
 	canList, err := ac.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
 		permission.AnswerEdit,

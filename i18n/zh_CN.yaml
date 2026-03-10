@@ -467,6 +467,12 @@ backend:
         other: 你的答案已被删除
       your_comment_was_deleted:
         other: 你的评论已被删除
+      your_question_needs_review:
+        other: 你的问题需要审核
+      your_answer_needs_review:
+        other: 你的答案需要审核
+      your_comment_needs_review:
+        other: 你的评论需要审核
       up_voted_question:
         other: 点赞问题
       down_voted_question:
@@ -2448,3 +2454,172 @@ ui:
     external_content_warning: 外部图像/媒体未显示。
 
 
+
+plugin:
+  glm_reviewer:
+    backend:
+      comment:
+        need_review:
+          other: 此内容已被 GLM AI 标记为待审核
+      config:
+        api_key:
+          description:
+            other: 用于身份验证的 GLM API 密钥
+          label:
+            other: API 密钥
+          title:
+            other: API 密钥
+        api_timeout:
+          description:
+            other: 等待 API 响应的最长时间
+          label:
+            other: API 超时
+          title:
+            other: API 超时（秒）
+        cache_max_size:
+          description:
+            other: 缓存中存储的最大项目数
+          label:
+            other: 缓存最大大小
+          title:
+            other: 缓存最大大小
+        cache_ttl:
+          description:
+            other: 缓存审核结果的生存时间
+          label:
+            other: 缓存 TTL
+          title:
+            other: 缓存 TTL（秒）
+        max_content_length:
+          description:
+            other: 要审核的内容的最大长度（字符）
+          label:
+            other: 最大内容长度
+          title:
+            other: 最大内容长度
+        max_retries:
+          description:
+            other: 失败请求的最大重试次数
+          label:
+            other: 最大重试次数
+          title:
+            other: 最大重试次数
+        rate_limit_rps:
+          description:
+            other: 每秒最大 API 请求数
+          label:
+            other: 速率限制（RPS）
+          title:
+            other: 速率限制（每秒请求数）
+        review_answer:
+          label:
+            other: 审核答案
+          title:
+            other: 启用答案审核
+        review_comment:
+          label:
+            other: 审核评论
+          title:
+            other: 启用评论审核
+        review_question:
+          label:
+            other: 审核问题
+          title:
+            other: 启用问题审核
+        spam_filtering:
+          delete:
+            other: 自动删除
+          review:
+            other: 标记为待审核
+          title:
+            other: 垃圾内容过滤操作
+      info:
+        description:
+          other: 使用 GLM AI 自动审核和过滤问题、答案和评论中的垃圾内容。
+        name:
+          other: GLM 内容审核
+  basic_connector:
+    backend:
+      name:
+        other: 通用连接器
+      info:
+        name:
+          other: OAuth2 通用连接器
+        description:
+          other: 适用于各种 OAuth 登录的通用插件
+      config:
+        name:
+          title:
+            other: 名称
+          description:
+            other: 在登录页面上显示的连接器名称
+        client_id:
+          title:
+            other: 客户端ID
+          description:
+            other: 您的应用程序的客户端ID
+        client_secret:
+          title:
+            other: 客户端密钥
+          description:
+            other: 您的应用程序的客户端密钥
+        authorize_url:
+          title:
+            other: 授权URL
+          description:
+            other: 您的应用程序的授权URL
+        token_url:
+          title:
+            other: 令牌URL
+          description:
+            other: 您的应用程序的令牌URL
+        user_json_url:
+          title:
+            other: 用户JSON URL
+          description:
+            other: 从此URL获取用户信息
+        user_id_json_path:
+          title:
+            other: 用户ID JSON路径
+          description:
+            other: "OAuth2用户JSON中用户ID的路径。例如：user.id"
+        user_display_name_json_path:
+          title:
+            other: 用户显示名称JSON路径
+          description:
+            other: "OAuth2用户JSON中用户显示名称的路径。例如：user.name"
+        user_username_json_path:
+          title:
+            other: 用户用户名JSON路径
+          description:
+            other: "OAuth2用户JSON中用户用户名的路径。例如：user.login"
+        user_email_json_path:
+          title:
+            other: 用户电子邮件JSON路径
+          description:
+            other: "OAuth2用户JSON中用户电子邮件的路径。例如：user.email"
+        user_avatar_json_path:
+          title:
+            other: 用户头像JSON路径
+          description:
+            other: "OAuth2用户JSON中用户头像的路径。例如：user.avatar_url"
+        check_email_verified:
+          title:
+            other: 检查电子邮件已验证
+          label:
+            other: OAuth2网站已经验证了该电子邮件
+        email_verified_json_path:
+          title:
+            other: 电子邮件已验证JSON路径
+          description:
+            other: "OAuth2用户JSON中电子邮件验证的路径。例如：user.email_verified"
+        scope:
+          title:
+            other: 范围(Scope)
+          description:
+            other: "您的应用程序的OAuth范围。多个 Scope 以 `,` 分隔，如：user.email,user.age"
+        logo_svg:
+          title:
+            other: 徽标SVG
+          description:
+            other: "应用程序徽标的SVG格式，格式为base64"

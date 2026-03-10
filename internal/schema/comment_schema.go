@@ -88,6 +88,8 @@ type UpdateCommentReq struct {
 	// user id
 	UserID  string `json:"-"`
 	IsAdmin bool   `json:"-"`
+	IP      string `json:"-"`
+	UserAgent string `json:"-"`
 
 	// whether user can edit it
 	CanEdit bool `json:"-"`

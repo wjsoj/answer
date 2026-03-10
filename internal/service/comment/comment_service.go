@@ -294,6 +294,40 @@ func (cs *CommentService) UpdateComment(ctx context.Context, req *schema.UpdateC
 		return nil, errors.BadRequest(reason.CommentCannotEditAfterDeadline)
 	}
 
+	// If user is editing their own comment and not admin, run through review plugin
+	if !req.IsAdmin && req.UserID == old.UserID {
+		// Create a temporary comment entity for review
+		tempComment := &entity.Comment{
+			ID:         old.ID,
+			UserID:     old.UserID,
+			ParsedText: req.ParsedText,
+		}
+		reviewStatus := cs.reviewService.AddCommentReview(ctx, tempComment, req.IP, req.UserAgent)
+		if reviewStatus == entity.CommentStatusPending {
+			// Content needs review, update with pending status
+			if err = cs.commentRepo.UpdateCommentContent(ctx, old.ID, req.OriginalText, req.ParsedText); err != nil {
+				return nil, err
+			}
+			// Update status to pending
+			if err = cs.commentCommonRepo.UpdateCommentStatus(ctx, old.ID, entity.CommentStatusPending); err != nil {
+				return nil, err
+			}
+			resp = &schema.UpdateCommentResp{
+				CommentID:    old.ID,
+				OriginalText: req.OriginalText,
+				ParsedText:   req.ParsedText,
+			}
+			return resp, nil
+		} else if reviewStatus == entity.CommentStatusDeleted {
+			// Content should be deleted directly, update status to deleted
+			if err = cs.commentCommonRepo.UpdateCommentStatus(ctx, old.ID, entity.CommentStatusDeleted); err != nil {
+				return nil, err
+			}
+			return nil, errors.BadRequest(reason.CommentEditWithoutPermission)
+		}
+		// If approved, continue with normal update
+	}
+
 	if err = cs.commentRepo.UpdateCommentContent(ctx, old.ID, req.OriginalText, req.ParsedText); err != nil {
 		return nil, err
 	}

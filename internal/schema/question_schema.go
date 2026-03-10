@@ -195,6 +195,8 @@ type QuestionUpdate struct {
 	QuestionPermission
 	CaptchaID   string `json:"captcha_id"` // captcha_id
 	CaptchaCode string `json:"captcha_code"`
+	IP          string `json:"-"`
+	UserAgent   string `json:"-"`
 }
 
 type QuestionRecoverReq struct {

@@ -1025,6 +1025,24 @@ func (qs *QuestionService) UpdateQuestion(ctx context.Context, req *schema.Quest
 		canUpdate = true
 	}
 
+	// If user is editing their own content, still need to run through review plugin
+	if dbinfo.UserID == req.UserID && !req.NoNeedReview {
+		// Call review plugin to check updated content
+		reviewStatus := qs.reviewService.AddQuestionReview(ctx, question, req.Tags, req.IP, req.UserAgent)
+		if reviewStatus == entity.QuestionStatusPending {
+			// Content needs review, create unreviewed revision
+			revisionDTO.Status = entity.RevisionUnreviewedStatus
+			revisionDTO.UserID = req.UserID
+			canUpdate = false
+		} else if reviewStatus == entity.QuestionStatusDeleted {
+			// Content should be deleted directly
+			return nil, errors.BadRequest(reason.QuestionCannotUpdate)
+		} else {
+			// Content approved, allow update
+			canUpdate = true
+		}
+	}
+
 	// It's not you or the administrator that needs to be reviewed
 	if !canUpdate {
 		revisionDTO.Status = entity.RevisionUnreviewedStatus

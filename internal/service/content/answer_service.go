@@ -387,8 +387,25 @@ func (as *AnswerService) Update(ctx context.Context, req *schema.AnswerUpdateReq
 		Log:      req.EditSummary,
 	}
 
-	if req.NoNeedReview || answerInfo.UserID == req.UserID {
+	if req.NoNeedReview {
 		canUpdate = true
+	}
+
+	// If user is editing their own content, still need to run through review plugin
+	if answerInfo.UserID == req.UserID && !req.NoNeedReview {
+		// Call review plugin to check updated content
+		reviewStatus := as.reviewService.AddAnswerReview(ctx, insertData, req.IP, req.UserAgent)
+		if reviewStatus == entity.AnswerStatusPending {
+			// Content needs review, create unreviewed revision
+			revisionDTO.Status = entity.RevisionUnreviewedStatus
+			canUpdate = false
+		} else if reviewStatus == entity.AnswerStatusDeleted {
+			// Content should be deleted directly
+			return "", errors.BadRequest(reason.AnswerCannotUpdate)
+		} else {
+			// Content approved, allow update
+			canUpdate = true
+		}
 	}
 
 	if !canUpdate {

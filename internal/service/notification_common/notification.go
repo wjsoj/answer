@@ -128,6 +128,13 @@ func (ns *NotificationCommon) AddNotification(ctx context.Context, msg *schema.N
 		objectMap := make(map[string]string)
 		objectMap["badge_id"] = msg.ExtraInfo["badge_id"]
 		req.ObjectInfo.ObjectMap = objectMap
+	} else if msg.ObjectID == "" {
+		// For review notifications without object reference, use a generic title
+		req.ObjectInfo.Title = msg.Title
+		if req.ObjectInfo.Title == "" {
+			req.ObjectInfo.Title = "Content Review"
+		}
+		req.ObjectInfo.ObjectMap = make(map[string]string)
 	} else {
 		objInfo, err = ns.objectInfoService.GetInfo(ctx, req.ObjectInfo.ObjectID)
 		if err != nil {
@@ -182,14 +189,17 @@ func (ns *NotificationCommon) AddNotification(ctx context.Context, msg *schema.N
 	info.UpdatedAt = now
 	info.ObjectID = req.ObjectInfo.ObjectID
 
-	userBasicInfo, exist, err := ns.userCommon.GetUserBasicInfoByID(ctx, req.TriggerUserID)
-	if err != nil {
-		return fmt.Errorf("get user basic info error: %w", err)
+	// For system notifications (TriggerUserID = "0"), skip user info lookup
+	if req.TriggerUserID != "0" {
+		userBasicInfo, exist, err := ns.userCommon.GetUserBasicInfoByID(ctx, req.TriggerUserID)
+		if err != nil {
+			return fmt.Errorf("get user basic info error: %w", err)
+		}
+		if !exist {
+			return fmt.Errorf("user not exist: %s", req.TriggerUserID)
+		}
+		req.UserInfo = userBasicInfo
 	}
-	if !exist {
-		return fmt.Errorf("user not exist: %s", req.TriggerUserID)
-	}
-	req.UserInfo = userBasicInfo
 	content, _ := json.Marshal(req)
 	_, ok := constant.NotificationMsgTypeMapping[req.NotificationAction]
 	if ok {

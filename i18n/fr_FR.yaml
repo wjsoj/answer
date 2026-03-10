@@ -2448,3 +2448,5 @@ ui:
     external_content_warning: Les images/médias externes ne sont pas affichés.
 
 
+
+plugin: {}

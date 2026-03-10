@@ -58,6 +58,12 @@ const (
 	NotificationInvitedYouToAnswer = "notification.action.invited_you_to_answer"
 	// NotificationEarnedBadge earned badge
 	NotificationEarnedBadge = "notification.action.earned_badge"
+	// NotificationYourQuestionNeedsReview your question needs review
+	NotificationYourQuestionNeedsReview = "notification.action.your_question_needs_review"
+	// NotificationYourAnswerNeedsReview your answer needs review
+	NotificationYourAnswerNeedsReview = "notification.action.your_answer_needs_review"
+	// NotificationYourCommentNeedsReview your comment needs review
+	NotificationYourCommentNeedsReview = "notification.action.your_comment_needs_review"
 )
 
 type NotificationChannelKey string
@@ -99,5 +105,8 @@ var (
 		NotificationYourAnswerWasDeleted:   1,
 		NotificationYourCommentWasDeleted:  1,
 		NotificationInvitedYouToAnswer:     3,
+		NotificationYourQuestionNeedsReview: 1,
+		NotificationYourAnswerNeedsReview:   1,
+		NotificationYourCommentNeedsReview:  1,
 	}
 )

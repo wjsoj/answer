@@ -51,7 +51,14 @@ func addActivityTimeline(ctx context.Context, x *xorm.Engine) (err error) {
 			return err
 		}
 	case schemas.SQLITE:
-		_, err = x.Context(ctx).Exec(`DROP INDEX "IDX_answer_user_id";
+		// Check if answer table exists before attempting migration
+		answerExists, err := x.Context(ctx).IsTableExist("answer")
+		if err != nil {
+			return err
+		}
+
+		if answerExists {
+			_, err = x.Context(ctx).Exec(`DROP INDEX IF EXISTS "IDX_answer_user_id";
 
 ALTER TABLE "answer" RENAME TO "_answer_old_v3";
 
@@ -75,8 +82,20 @@ INSERT INTO "answer" ("id", "created_at", "updated_at", "question_id", "user_id"
 CREATE INDEX "IDX_answer_user_id"
 ON "answer" (
   "user_id" ASC
-);
-DROP INDEX "IDX_question_user_id";
+);`)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Check if question table exists before attempting migration
+		questionExists, err := x.Context(ctx).IsTableExist("question")
+		if err != nil {
+			return err
+		}
+
+		if questionExists {
+			_, err = x.Context(ctx).Exec(`DROP INDEX IF EXISTS "IDX_question_user_id";
 
 ALTER TABLE "question" RENAME TO "_question_old_v3";
 
@@ -108,19 +127,45 @@ CREATE INDEX "IDX_question_user_id"
 ON "question" (
   "user_id" ASC
 );`)
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	// only increasing field length to 128
-	type Config struct {
-		ID  int    `xorm:"not null pk autoincr INT(11) id"`
-		Key string `xorm:"unique VARCHAR(128) key"`
+	// Manually handle config table for SQLite compatibility
+	switch x.Dialect().URI().DBType {
+	case schemas.SQLITE:
+		// Check if value column exists
+		rows, err := x.Context(ctx).Query("PRAGMA table_info(config)")
+		if err != nil {
+			return fmt.Errorf("check config table failed: %w", err)
+		}
+		hasValue := false
+		for _, row := range rows {
+			if len(row) > 1 && string(row["name"]) == "value" {
+				hasValue = true
+				break
+			}
+		}
+		if !hasValue {
+			_, err = x.Context(ctx).Exec("ALTER TABLE config ADD COLUMN value TEXT")
+			if err != nil {
+				return fmt.Errorf("add value column to config table failed: %w", err)
+			}
+		}
+	case schemas.MYSQL, schemas.POSTGRES:
+		// For MySQL and PostgreSQL, use Sync to extend key length
+		type Config struct {
+			ID    int    `xorm:"not null pk autoincr INT(11) id"`
+			Key   string `xorm:"unique VARCHAR(128) key"`
+			Value string `xorm:"TEXT value"`
+		}
+		if err := x.Context(ctx).Sync(new(Config)); err != nil {
+			return fmt.Errorf("sync config table failed: %w", err)
+		}
 	}
-	if err := x.Context(ctx).Sync(new(Config)); err != nil {
-		return fmt.Errorf("sync config table failed: %w", err)
-	}
+
 	defaultConfigTable := []*entity.Config{
 		{ID: 36, Key: "rank.question.add", Value: `1`},
 		{ID: 37, Key: "rank.question.edit", Value: `200`},
@@ -192,42 +237,131 @@ ON "question" (
 		}
 	}
 
-	type Revision struct {
-		ID           string `xorm:"not null pk autoincr BIGINT(20) id"`
-		ObjectID     string `xorm:"not null default 0 BIGINT(20) INDEX object_id"`
-		ReviewUserID int64  `xorm:"not null default 0 BIGINT(20) review_user_id"`
-	}
-	type Activity struct {
-		ID               string    `xorm:"not null pk autoincr BIGINT(20) id"`
-		CancelledAt      time.Time `xorm:"TIMESTAMP cancelled_at"`
-		UserID           string    `xorm:"not null index BIGINT(20) user_id"`
-		TriggerUserID    int64     `xorm:"not null default 0 index BIGINT(20) trigger_user_id"`
-		ObjectID         string    `xorm:"not null default 0 index BIGINT(20) object_id"`
-		RevisionID       int64     `xorm:"not null default 0 BIGINT(20) revision_id"`
-		OriginalObjectID string    `xorm:"not null default 0 BIGINT(20) original_object_id"`
-	}
-	type Tag struct {
-		ID       string `xorm:"not null pk comment('tag_id') BIGINT(20) id"`
-		SlugName string `xorm:"not null default '' unique VARCHAR(35) slug_name"`
-		UserID   string `xorm:"not null default 0 BIGINT(20) user_id"`
-	}
-	type Question struct {
-		ID             string    `xorm:"not null pk BIGINT(20) id"`
-		UserID         string    `xorm:"not null default 0 BIGINT(20) INDEX user_id"`
-		UpdatedAt      time.Time `xorm:"updated_at TIMESTAMP"`
-		LastEditUserID string    `xorm:"not null default 0 BIGINT(20) last_edit_user_id"`
-		PostUpdateTime time.Time `xorm:"post_update_time TIMESTAMP"`
-	}
-	type Answer struct {
-		ID             string    `xorm:"not null pk autoincr BIGINT(20) id"`
-		UserID         string    `xorm:"not null default 0 BIGINT(20) INDEX user_id"`
-		UpdatedAt      time.Time `xorm:"updated_at TIMESTAMP"`
-		LastEditUserID string    `xorm:"not null default 0 BIGINT(20) last_edit_user_id"`
+	// Manually handle table schema changes for SQLite compatibility
+	switch x.Dialect().URI().DBType {
+	case schemas.SQLITE:
+		// Add user_id to tag table if it doesn't exist
+		rows, err := x.Context(ctx).Query("PRAGMA table_info(tag)")
+		if err != nil {
+			return fmt.Errorf("check tag table failed: %w", err)
+		}
+		hasUserID := false
+		for _, row := range rows {
+			if len(row) > 1 && string(row["name"]) == "user_id" {
+				hasUserID = true
+				break
+			}
+		}
+		if !hasUserID {
+			_, err = x.Context(ctx).Exec("ALTER TABLE tag ADD COLUMN user_id TEXT NOT NULL DEFAULT '0'")
+			if err != nil {
+				return fmt.Errorf("add user_id column to tag table failed: %w", err)
+			}
+		}
+
+		// Create other tables if they don't exist
+		type Revision struct {
+			ID           string `xorm:"not null pk autoincr BIGINT(20) id"`
+			ObjectID     string `xorm:"not null default 0 BIGINT(20) INDEX object_id"`
+			ReviewUserID int64  `xorm:"not null default 0 BIGINT(20) review_user_id"`
+		}
+		type Activity struct {
+			ID               string    `xorm:"not null pk autoincr BIGINT(20) id"`
+			CancelledAt      time.Time `xorm:"TIMESTAMP cancelled_at"`
+			UserID           string    `xorm:"not null index BIGINT(20) user_id"`
+			TriggerUserID    int64     `xorm:"not null default 0 index BIGINT(20) trigger_user_id"`
+			ObjectID         string    `xorm:"not null default 0 index BIGINT(20) object_id"`
+			RevisionID       int64     `xorm:"not null default 0 BIGINT(20) revision_id"`
+			OriginalObjectID string    `xorm:"not null default 0 BIGINT(20) original_object_id"`
+		}
+		type Question struct {
+			ID             string    `xorm:"not null pk BIGINT(20) id"`
+			UserID         string    `xorm:"not null default 0 BIGINT(20) INDEX user_id"`
+			UpdatedAt      time.Time `xorm:"updated_at TIMESTAMP"`
+			LastEditUserID string    `xorm:"not null default 0 BIGINT(20) last_edit_user_id"`
+			PostUpdateTime time.Time `xorm:"post_update_time TIMESTAMP"`
+		}
+		type Answer struct {
+			ID             string    `xorm:"not null pk autoincr BIGINT(20) id"`
+			UserID         string    `xorm:"not null default 0 BIGINT(20) INDEX user_id"`
+			UpdatedAt      time.Time `xorm:"updated_at TIMESTAMP"`
+			LastEditUserID string    `xorm:"not null default 0 BIGINT(20) last_edit_user_id"`
+		}
+
+		// Sync will create tables if they don't exist, but won't modify existing ones
+		err = x.Context(ctx).Sync(new(Activity), new(Revision), new(Question), new(Answer))
+		if err != nil {
+			return fmt.Errorf("sync table failed %w", err)
+		}
+	case schemas.MYSQL, schemas.POSTGRES:
+		type Revision struct {
+			ID           string `xorm:"not null pk autoincr BIGINT(20) id"`
+			ObjectID     string `xorm:"not null default 0 BIGINT(20) INDEX object_id"`
+			ReviewUserID int64  `xorm:"not null default 0 BIGINT(20) review_user_id"`
+		}
+		type Activity struct {
+			ID               string    `xorm:"not null pk autoincr BIGINT(20) id"`
+			CancelledAt      time.Time `xorm:"TIMESTAMP cancelled_at"`
+			UserID           string    `xorm:"not null index BIGINT(20) user_id"`
+			TriggerUserID    int64     `xorm:"not null default 0 index BIGINT(20) trigger_user_id"`
+			ObjectID         string    `xorm:"not null default 0 index BIGINT(20) object_id"`
+			RevisionID       int64     `xorm:"not null default 0 BIGINT(20) revision_id"`
+			OriginalObjectID string    `xorm:"not null default 0 BIGINT(20) original_object_id"`
+		}
+		type Tag struct {
+			ID       string `xorm:"not null pk comment('tag_id') BIGINT(20) id"`
+			SlugName string `xorm:"not null default '' unique VARCHAR(35) slug_name"`
+			UserID   string `xorm:"not null default 0 BIGINT(20) user_id"`
+		}
+		type Question struct {
+			ID             string    `xorm:"not null pk BIGINT(20) id"`
+			UserID         string    `xorm:"not null default 0 BIGINT(20) INDEX user_id"`
+			UpdatedAt      time.Time `xorm:"updated_at TIMESTAMP"`
+			LastEditUserID string    `xorm:"not null default 0 BIGINT(20) last_edit_user_id"`
+			PostUpdateTime time.Time `xorm:"post_update_time TIMESTAMP"`
+		}
+		type Answer struct {
+			ID             string    `xorm:"not null pk autoincr BIGINT(20) id"`
+			UserID         string    `xorm:"not null default 0 BIGINT(20) INDEX user_id"`
+			UpdatedAt      time.Time `xorm:"updated_at TIMESTAMP"`
+			LastEditUserID string    `xorm:"not null default 0 BIGINT(20) last_edit_user_id"`
+		}
+
+		err = x.Context(ctx).Sync(new(Activity), new(Revision), new(Tag), new(Question), new(Answer))
+		if err != nil {
+			return fmt.Errorf("sync table failed %w", err)
+		}
 	}
 
-	err = x.Context(ctx).Sync(new(Activity), new(Revision), new(Tag), new(Question), new(Answer))
+	// Ensure all base tables exist (for databases that were not initialized with InitDB)
+	err = x.Context(ctx).Sync(
+		&entity.Collection{},
+		&entity.CollectionGroup{},
+		&entity.Comment{},
+		&entity.Meta{},
+		&entity.Notification{},
+		&entity.QuestionLink{},
+		&entity.Report{},
+		&entity.SiteInfo{},
+		&entity.TagRel{},
+		&entity.Uniqid{},
+		&entity.PluginConfig{},
+		&entity.UserExternalLogin{},
+		&entity.UserNotificationConfig{},
+		&entity.PluginUserConfig{},
+		&entity.Review{},
+		&entity.Badge{},
+		&entity.BadgeGroup{},
+		&entity.BadgeAward{},
+		&entity.FileRecord{},
+		&entity.PluginKVStorage{},
+		&entity.APIKey{},
+		&entity.AIConversation{},
+		&entity.AIConversationRecord{},
+	)
 	if err != nil {
-		return fmt.Errorf("sync table failed %w", err)
+		return fmt.Errorf("sync base tables failed: %w", err)
 	}
+
 	return nil
 }

@@ -22,9 +22,20 @@ services:
     container_name: answer-prod
     ports:
       - '9080:80'
-    restart: on-failure
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
     volumes:
       - answer-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.apache.answer.version=2.0.0"
+      - "com.apache.answer.mcp=enabled"
 
 volumes:
   answer-data:

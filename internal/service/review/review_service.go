@@ -233,9 +233,48 @@ func (cs *ReviewService) callPluginToReview(ctx context.Context, userID, objectI
 	if reviewStatus == plugin.ReviewStatusNeedReview {
 		if err := cs.reviewRepo.AddReview(ctx, r); err != nil {
 			log.Errorf("add review failed, err: %v", err)
+		} else {
+			// Send notification to the content author
+			cs.sendReviewNotification(ctx, userID, objectID, reviewContent.ObjectType, r.Reason)
 		}
 	}
 	return reviewStatus
+}
+
+// sendReviewNotification sends a notification to the user when their content is flagged for review
+func (cs *ReviewService) sendReviewNotification(ctx context.Context, userID, objectID, objectType, reason string) {
+	// Determine the notification action based on object type
+	var notificationAction string
+	var title string
+	switch objectType {
+	case constant.QuestionObjectType:
+		notificationAction = constant.NotificationYourQuestionNeedsReview
+		title = "Your question"
+	case constant.AnswerObjectType:
+		notificationAction = constant.NotificationYourAnswerNeedsReview
+		title = "Your answer"
+	case constant.CommentObjectType:
+		notificationAction = constant.NotificationYourCommentNeedsReview
+		title = "Your comment"
+	default:
+		return
+	}
+
+	msg := &schema.NotificationMsg{
+		TriggerUserID:      "0", // System notification
+		ReceiverUserID:     userID,
+		Type:               schema.NotificationTypeInbox,
+		ObjectID:           "", // Don't include ObjectID to avoid lookup errors
+		ObjectType:         objectType,
+		NotificationAction: notificationAction,
+		Title:              title,
+		ExtraInfo: map[string]string{
+			"reason": reason,
+		},
+	}
+
+	cs.notificationQueueService.Send(ctx, msg)
+	log.Infof("Sent review notification to user %s for %s %s", userID, objectType, objectID)
 }
 
 // UpdateReview update review

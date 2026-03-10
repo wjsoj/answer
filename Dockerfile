@@ -19,8 +19,7 @@ FROM golang:1.24-alpine AS golang-builder
 LABEL maintainer="linkinstar@apache.org"
 
 ARG GOPROXY
-# ENV GOPROXY ${GOPROXY:-direct}
-# ENV GOPROXY=https://proxy.golang.com.cn,direct
+ENV GOPROXY ${GOPROXY:-https://goproxy.cn,direct}
 
 ENV GOPATH /go
 ENV GOROOT /usr/local/go
@@ -34,7 +33,11 @@ ARG CGO_EXTRA_CFLAGS
 
 COPY . ${BUILD_DIR}
 WORKDIR ${BUILD_DIR}
-RUN apk --no-cache add build-base git bash nodejs npm && npm install -g pnpm@9.7.0 \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && apk --no-cache add build-base git bash nodejs npm \
+    && npm config set registry https://registry.npmmirror.com \
+    && npm install -g pnpm@9.7.0 \
+    && pnpm config set registry https://registry.npmmirror.com \
     && make clean build
 
 RUN chmod 755 answer

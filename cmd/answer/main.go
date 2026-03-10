@@ -23,6 +23,8 @@ package main
 
 import (
 	answercmd "github.com/apache/answer/cmd"
+	_ "github.com/apache/answer-plugins/connector-basic"
+	_ "github.com/apache/answer-plugins/reviewer-glm"
 )
 
 // main godoc

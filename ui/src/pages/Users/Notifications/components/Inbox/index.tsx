@@ -61,18 +61,30 @@ const Inbox = ({ data, handleReadNotification }) => {
               !item.is_read && 'warning',
             )}>
             <div>
-              {item.user_info && item.user_info.status !== 'deleted' ? (
-                <Link to={`/users/${item.user_info.username}`}>
-                  {item.user_info.display_name}{' '}
-                </Link>
+              {/* Check if this is a review notification (system notification without user) */}
+              {item.notification_action?.includes('needs_review') ? (
+                // For review notifications, just show the action text
+                <span>{item.notification_action}</span>
               ) : (
-                // someone for anonymous user display
-                <span>{item.user_info?.display_name || t('someone')} </span>
+                <>
+                  {item.user_info && item.user_info.status !== 'deleted' ? (
+                    <Link to={`/users/${item.user_info.username}`}>
+                      {item.user_info.display_name}{' '}
+                    </Link>
+                  ) : (
+                    // someone for anonymous user display
+                    <span>{item.user_info?.display_name || t('someone')} </span>
+                  )}
+                  {item.notification_action}{' '}
+                  {url && (
+                    <Link
+                      to={url}
+                      onClick={() => handleReadNotification(item.id)}>
+                      {item.object_info.title}
+                    </Link>
+                  )}
+                </>
               )}
-              {item.notification_action}{' '}
-              <Link to={url} onClick={() => handleReadNotification(item.id)}>
-                {item.object_info.title}
-              </Link>
             </div>
             <div className="text-secondary small">
               <FormatTime time={item.update_time} />

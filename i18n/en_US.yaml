@@ -468,6 +468,12 @@ backend:
         other: Your answer has been deleted
       your_comment_was_deleted:
         other: Your comment has been deleted
+      your_question_needs_review:
+        other: Your question needs review
+      your_answer_needs_review:
+        other: Your answer needs review
+      your_comment_needs_review:
+        other: Your comment needs review
       up_voted_question:
         other: upvoted question
       down_voted_question:
@@ -2513,3 +2519,172 @@ ui:
     external_content_warning: External images/media are not displayed.
 
 
+
+plugin:
+  glm_reviewer:
+    backend:
+      comment:
+        need_review:
+          other: This content has been flagged for review by GLM AI
+      config:
+        api_key:
+          description:
+            other: Your GLM API key for authentication
+          label:
+            other: API Key
+          title:
+            other: API Key
+        api_timeout:
+          description:
+            other: Maximum time to wait for API response
+          label:
+            other: API Timeout
+          title:
+            other: API Timeout (seconds)
+        cache_max_size:
+          description:
+            other: Maximum number of items to store in cache
+          label:
+            other: Cache Max Size
+          title:
+            other: Cache Maximum Size
+        cache_ttl:
+          description:
+            other: Time to live for cached review results
+          label:
+            other: Cache TTL
+          title:
+            other: Cache TTL (seconds)
+        max_content_length:
+          description:
+            other: Maximum length of content to review (characters)
+          label:
+            other: Max Content Length
+          title:
+            other: Maximum Content Length
+        max_retries:
+          description:
+            other: Maximum number of retry attempts for failed requests
+          label:
+            other: Max Retries
+          title:
+            other: Maximum Retries
+        rate_limit_rps:
+          description:
+            other: Maximum number of API requests per second
+          label:
+            other: Rate Limit (RPS)
+          title:
+            other: Rate Limit (Requests Per Second)
+        review_answer:
+          label:
+            other: Review Answers
+          title:
+            other: Enable Answer Review
+        review_comment:
+          label:
+            other: Review Comments
+          title:
+            other: Enable Comment Review
+        review_question:
+          label:
+            other: Review Questions
+          title:
+            other: Enable Question Review
+        spam_filtering:
+          delete:
+            other: Auto Delete
+          review:
+            other: Mark for Review
+          title:
+            other: Spam Filtering Action
+      info:
+        description:
+          other: Use GLM AI to automatically review and filter spam content in questions, answers, and comments.
+        name:
+          other: GLM Content Reviewer
+  basic_connector:
+    backend:
+      name:
+        other: Basic Connector
+      info:
+        name:
+          other: OAuth2 Basic Connector
+        description:
+          other: Generic OAuth plugin for various OAuth login functions
+      config:
+        name:
+          title:
+            other: Name
+          description:
+            other: Name of your connector which will be shown in the login page
+        client_id:
+          title:
+            other: Client ID
+          description:
+            other: Client ID of your application
+        client_secret:
+          title:
+            other: Client Secret
+          description:
+            other: Client secret of your application
+        authorize_url:
+          title:
+            other: Authorize URL
+          description:
+            other: Authorize URL of your application
+        token_url:
+          title:
+            other: Token URL
+          description:
+            other: Token URL of your application
+        user_json_url:
+          title:
+            other: User JSON URL
+          description:
+            other: Get user info from this URL
+        user_id_json_path:
+          title:
+            other: User ID JSON Path
+          description:
+            other: "Path in the OAuth2 User JSON to the user id. eg: user.id"
+        user_display_name_json_path:
+          title:
+            other: User Display Name JSON Path
+          description:
+            other: "Path in the OAuth2 User JSON to the user display name. eg: user.name"
+        user_username_json_path:
+          title:
+            other: User Username JSON Path
+          description:
+            other: "Path in the OAuth2 User JSON to the user username. eg: user.login"
+        user_email_json_path:
+          title:
+            other: User Email JSON Path
+          description:
+            other: "Path in the OAuth2 User JSON to the user email. eg: user.email"
+        user_avatar_json_path:
+          title:
+            other: User Avatar JSON Path
+          description:
+            other: "Path in the OAuth2 User JSON to the user avatar. eg: user.avatar_url"
+        check_email_verified:
+          title:
+            other: Check Email Verified
+          label:
+            other: The email is already verified by the OAuth2 website
+        email_verified_json_path:
+          title:
+            other: Email Verified JSON Path
+          description:
+            other: "Path in the OAuth2 User JSON to the email verified. eg: user.email_verified"
+        scope:
+          title:
+            other: Scope
+          description:
+            other: "OAuth Scope of your application. Multiple scopes separated by `,` e.g. user.email,user.age"
+        logo_svg:
+          title:
+            other: Logo SVG
+          description:
+            other: "SVG of your application logo which format is base64"

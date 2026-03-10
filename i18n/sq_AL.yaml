@@ -1369,3 +1369,5 @@ ui:
     staffs: Our community staff
     reputation: reputation
     votes: votes
+
+plugin: {}

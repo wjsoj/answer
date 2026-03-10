@@ -62,3 +62,5 @@ language_options:
   - label: "فارسی"
     value: "fa_IR"
     progress: 69
+
+plugin: {}
