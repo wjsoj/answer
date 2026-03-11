@@ -97,17 +97,30 @@ func MergeI18nFilesLocal(originalI18nDir, targetI18nDir string) (err error) {
 			continue
 		}
 
-		out, _ := yaml.Marshal(pluginAllTranslations[filename])
+		// Read existing file content
+		originalPath := filepath.Join(originalI18nDir, filename)
+		existingContent := &YamlPluginContent{Plugin: make(map[string]any)}
 
-		buf, err := os.OpenFile(filepath.Join(originalI18nDir, filename), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if buf, err := os.ReadFile(originalPath); err == nil {
+			_ = yaml.Unmarshal(buf, existingContent)
+		}
+
+		// Merge plugin translations
+		if existingContent.Plugin == nil {
+			existingContent.Plugin = make(map[string]any)
+		}
+		for k, v := range pluginAllTranslations[filename].Plugin {
+			existingContent.Plugin[k] = v
+		}
+
+		// Write merged content
+		out, _ := yaml.Marshal(existingContent)
+		err = os.WriteFile(originalPath, out, 0644)
 		if err != nil {
-			fmt.Printf("[i18n] read translation file failed: %s %s\n", filename, err)
+			fmt.Printf("[i18n] write translation file failed: %s %s\n", filename, err)
 			continue
 		}
 
-		_, _ = buf.WriteString("\n")
-		_, _ = buf.Write(out)
-		_ = buf.Close()
 		fmt.Printf("[i18n] merge i18n file: %s success\n", filename)
 	}
 

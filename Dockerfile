@@ -38,6 +38,14 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     && npm config set registry https://registry.npmmirror.com \
     && npm install -g pnpm@9.7.0 \
     && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm config set store-dir /root/.pnpm-store \
+    && cd ui \
+    && rm -rf node_modules \
+    && node ./scripts/importPlugins.js \
+    && pnpm install --no-frozen-lockfile --registry=https://registry.npmmirror.com \
+    && node ./scripts/env.js \
+    && pnpm run build \
+    && cd .. \
     && make clean build
 
 RUN chmod 755 answer

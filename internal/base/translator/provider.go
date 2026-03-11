@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/google/wire"
 	myTran "github.com/segmentfault/pacman/contrib/i18n"
@@ -51,13 +52,22 @@ const DefaultLangOption = "Default"
 var (
 	// LanguageOptions language
 	LanguageOptions []*LangOption
+	once            sync.Once
+	initErr         error
 )
 
 // NewTranslator new a translator
 func NewTranslator(c *I18n) (tr i18n.Translator, err error) {
+	once.Do(func() {
+		initErr = initTranslator(c)
+	})
+	return GlobalTrans, initErr
+}
+
+func initTranslator(c *I18n) error {
 	entries, err := os.ReadDir(c.BundleDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// read the Bundle resources file from entries
@@ -73,7 +83,7 @@ func NewTranslator(c *I18n) (tr i18n.Translator, err error) {
 		log.Debugf("try to read file: %s", file.Name())
 		buf, err := os.ReadFile(filepath.Join(c.BundleDir, file.Name()))
 		if err != nil {
-			return nil, fmt.Errorf("read file failed: %s %s", file.Name(), err)
+			return fmt.Errorf("read file failed: %s %s", file.Name(), err)
 		}
 
 		// parse the backend translation
@@ -83,7 +93,7 @@ func NewTranslator(c *I18n) (tr i18n.Translator, err error) {
 			Plugin  map[string]any            `yaml:"plugin"`
 		}{}
 		if err = yaml.Unmarshal(buf, &originalTr); err != nil {
-			return nil, err
+			return err
 		}
 		translation := make(map[string]any, 0)
 		for k, v := range originalTr.Backend {
@@ -110,7 +120,7 @@ func NewTranslator(c *I18n) (tr i18n.Translator, err error) {
 
 	i18nFile, err := os.ReadFile(filepath.Join(c.BundleDir, "i18n.yaml"))
 	if err != nil {
-		return nil, fmt.Errorf("read i18n file failed: %s", err)
+		return fmt.Errorf("read i18n file failed: %s", err)
 	}
 
 	s := struct {
@@ -118,13 +128,13 @@ func NewTranslator(c *I18n) (tr i18n.Translator, err error) {
 	}{}
 	err = yaml.Unmarshal(i18nFile, &s)
 	if err != nil {
-		return nil, fmt.Errorf("i18n file parsing failed: %s", err)
+		return fmt.Errorf("i18n file parsing failed: %s", err)
 	}
 	LanguageOptions = s.LangOption
 	for _, option := range LanguageOptions {
 		option.Label = fmt.Sprintf("%s (%d%%)", option.Label, option.Progress)
 	}
-	return GlobalTrans, err
+	return nil
 }
 
 // CheckLanguageIsValid check user input language is valid

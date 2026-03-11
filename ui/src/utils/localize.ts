@@ -110,13 +110,26 @@ const addI18nResource = async (langName) => {
 export const getCurrentLang = () => {
   const loggedUser = loggedUserInfoStore.getState().user;
   const adminInterface = interfaceStore.getState().interface;
-  const fallbackLang = Storage.get(CURRENT_LANG_STORAGE_KEY) || DEFAULT_LANG;
+
+  // Priority: 1. Logged user preference, 2. Admin interface setting, 3. localStorage, 4. Default
   let currentLang = loggedUser.language;
+
   // `default` mean use language value from admin interface
   if (/default/i.test(currentLang)) {
     currentLang = adminInterface.language;
   }
-  currentLang ||= fallbackLang;
+
+  // If still no language (e.g., not logged in and no user preference), use admin interface setting
+  if (!currentLang || currentLang === '') {
+    currentLang = adminInterface.language;
+  }
+
+  // Final fallback: localStorage or DEFAULT_LANG
+  if (!currentLang || currentLang === '') {
+    const fallbackLang = Storage.get(CURRENT_LANG_STORAGE_KEY) || DEFAULT_LANG;
+    currentLang = fallbackLang;
+  }
+
   return currentLang;
 };
 

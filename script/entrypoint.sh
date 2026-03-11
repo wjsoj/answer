@@ -16,6 +16,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
-/usr/bin/answer init
-/usr/bin/answer upgrade
+# Check if config file exists
+if [ ! -f /data/conf/config.yaml ]; then
+  echo "Config file not found, initializing..."
+  /usr/bin/answer init -C /data/
+
+  # If AUTO_INSTALL is set, the init command will auto-install and exit
+  # Otherwise, it will start the web installer which we don't want in Docker
+  if [ -z "$AUTO_INSTALL" ]; then
+    echo "ERROR: Config file not created. Please set AUTO_INSTALL environment variables."
+    exit 1
+  fi
+fi
+
+# Run the application
 /usr/bin/answer run -C /data/

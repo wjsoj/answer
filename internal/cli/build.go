@@ -390,17 +390,29 @@ func mergeI18nFiles(b *buildingMaterial) (err error) {
 			continue
 		}
 
-		out, _ := yaml.Marshal(pluginAllTranslations[filename])
+		// Read existing file content
+		originalPath := filepath.Join(originalI18nDir, filename)
+		existingContent := &YamlPluginContent{Plugin: make(map[string]any)}
 
-		buf, err := os.OpenFile(filepath.Join(originalI18nDir, filename), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Debugf("read translation file failed: %s %s", filename, err)
-			continue
+		if buf, err := os.ReadFile(originalPath); err == nil {
+			_ = yaml.Unmarshal(buf, existingContent)
 		}
 
-		_, _ = buf.WriteString("\n")
-		_, _ = buf.Write(out)
-		_ = buf.Close()
+		// Merge plugin translations
+		if existingContent.Plugin == nil {
+			existingContent.Plugin = make(map[string]any)
+		}
+		for k, v := range pluginAllTranslations[filename].Plugin {
+			existingContent.Plugin[k] = v
+		}
+
+		// Write merged content
+		out, _ := yaml.Marshal(existingContent)
+		err = os.WriteFile(originalPath, out, 0644)
+		if err != nil {
+			log.Debugf("write translation file failed: %s %s", filename, err)
+			continue
+		}
 	}
 	return err
 }

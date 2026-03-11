@@ -24,7 +24,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/anargu/gin-brotli v0.0.0-20220116052358-12bf532d5267
 	github.com/apache/answer-plugins/connector-basic v1.2.12
-	github.com/apache/answer-plugins/reviewer-glm v0.0.0-00010101000000-000000000000
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/disintegration/imaging v1.6.2
@@ -61,6 +60,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.3
 	github.com/tidwall/gjson v1.17.3
+	github.com/wjsoj/answer-plugins/reviewer-glm v0.0.0-20260311125530-3eca3b717ba4
 	github.com/yuin/goldmark v1.7.4
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.41.0
@@ -195,5 +195,3 @@ replace lukechampine.com/uint128 v1.1.1 => github.com/aichy126/uint128 v1.1.1
 replace modernc.org/cc/v3 v3.40.0 => gitlab.com/cznic/cc/v3 v3.40.0
 
 replace github.com/lyft/protoc-gen-validate v0.0.13 => github.com/LinkinStars/protoc-gen-validate v0.0.0-20251030022322-3fddbbe5a0e6
-
-replace github.com/apache/answer-plugins/reviewer-glm => ../answer-plugins/reviewer-glm

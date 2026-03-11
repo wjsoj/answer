@@ -1,0 +1,40 @@
+
+services:
+  answer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GOPROXY: https://goproxy.cn,direct
+    image: git.pku.edu.cn/2200011523/answer:2.0.0-3abdc143
+    container_name: answer
+    restart: unless-stopped
+    ports:
+      - "9080:80"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - AUTO_INSTALL=true
+      - DB_TYPE=sqlite3
+      - DB_FILE=/data/answer.db
+      - LANGUAGE=zh_CN
+      - SITE_NAME=Test Forum
+      - SITE_URL=http://localhost:9080
+      - CONTACT_EMAIL=admin@example.com
+      - ADMIN_NAME=admin
+      - ADMIN_PASSWORD=admin123456
+      - ADMIN_EMAIL=admin@example.com
+      - EXTERNAL_CONTENT_DISPLAY=always_display
+    networks:
+      - answer-network
+    healthcheck:
+      test: ["CMD", "/usr/bin/answer", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  answer-network:
+    driver: bridge
