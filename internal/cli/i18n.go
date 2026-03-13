@@ -88,7 +88,11 @@ func MergeI18nFilesLocal(originalI18nDir, targetI18nDir string) (err error) {
 		}
 		// ignore non-YAML file
 		filename := file.Name()
-		if filepath.Ext(filename) != ".yaml" && filename != "i18n.yaml" {
+		if filepath.Ext(filename) != ".yaml" {
+			continue
+		}
+		// ignore i18n.yaml (contains language_options metadata, not plugin translations)
+		if filename == "i18n.yaml" {
 			continue
 		}
 
@@ -97,24 +101,26 @@ func MergeI18nFilesLocal(originalI18nDir, targetI18nDir string) (err error) {
 			continue
 		}
 
-		// Read existing file content
+		// Read existing file content preserving all keys (backend, ui, plugin)
 		originalPath := filepath.Join(originalI18nDir, filename)
-		existingContent := &YamlPluginContent{Plugin: make(map[string]any)}
+		fullContent := make(map[string]any)
 
 		if buf, err := os.ReadFile(originalPath); err == nil {
-			_ = yaml.Unmarshal(buf, existingContent)
+			_ = yaml.Unmarshal(buf, &fullContent)
 		}
 
-		// Merge plugin translations
-		if existingContent.Plugin == nil {
-			existingContent.Plugin = make(map[string]any)
+		// Merge plugin translations into the plugin key only
+		pluginSection, _ := fullContent["plugin"].(map[string]any)
+		if pluginSection == nil {
+			pluginSection = make(map[string]any)
 		}
 		for k, v := range pluginAllTranslations[filename].Plugin {
-			existingContent.Plugin[k] = v
+			pluginSection[k] = v
 		}
+		fullContent["plugin"] = pluginSection
 
-		// Write merged content
-		out, _ := yaml.Marshal(existingContent)
+		// Write merged content (preserves backend, ui, and other keys)
+		out, _ := yaml.Marshal(fullContent)
 		err = os.WriteFile(originalPath, out, 0644)
 		if err != nil {
 			fmt.Printf("[i18n] write translation file failed: %s %s\n", filename, err)

@@ -19,16 +19,16 @@ FROM golang:1.24-alpine AS golang-builder
 LABEL maintainer="linkinstar@apache.org"
 
 ARG GOPROXY
-ENV GOPROXY ${GOPROXY:-https://goproxy.cn,direct}
+ENV GOPROXY=${GOPROXY:-https://goproxy.cn,direct}
 
-ENV GOPATH /go
-ENV GOROOT /usr/local/go
-ENV PACKAGE github.com/apache/answer
-ENV BUILD_DIR ${GOPATH}/src/${PACKAGE}
-ENV ANSWER_MODULE ${BUILD_DIR}
+ENV GOPATH=/go
+ENV GOROOT=/usr/local/go
+ENV PACKAGE=github.com/apache/answer
+ENV BUILD_DIR=${GOPATH}/src/${PACKAGE}
+ENV ANSWER_MODULE=${BUILD_DIR}
 
 ARG TAGS="sqlite sqlite_unlock_notify"
-ENV TAGS "bindata timetzdata $TAGS"
+ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
 COPY . ${BUILD_DIR}

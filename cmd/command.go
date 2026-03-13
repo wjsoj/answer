@@ -106,6 +106,7 @@ To run answer, use:
 		Long:  `Start running Answer`,
 		Run: func(_ *cobra.Command, _ []string) {
 			path.FormatAllPath(dataDirPath)
+			cli.InstallI18nBundle(false)
 			fmt.Println("config file path: ", path.GetConfigFilePath())
 			fmt.Println("Answer is starting..........................")
 			runApp()

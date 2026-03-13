@@ -1,12 +1,7 @@
 
 services:
   answer:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        GOPROXY: https://goproxy.cn,direct
-    image: git.pku.edu.cn/2200011523/answer:2.0.0-3abdc143
+    image: git.pku.edu.cn/2200011523/answer:${IMAGE_TAG:-latest}
     container_name: answer
     restart: unless-stopped
     ports:

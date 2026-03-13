@@ -16,6 +16,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# Remove old i18n files to force refresh from embedded resources
+if [ -d /data/i18n ]; then
+  echo "Removing old i18n files..."
+  rm -rf /data/i18n
+fi
+
+# Create necessary directories if they don't exist
+mkdir -p /data/conf /data/cache /data/uploads
+
 # Check if config file exists
 if [ ! -f /data/conf/config.yaml ]; then
   echo "Config file not found, initializing..."
@@ -27,6 +36,10 @@ if [ ! -f /data/conf/config.yaml ]; then
     echo "ERROR: Config file not created. Please set AUTO_INSTALL environment variables."
     exit 1
   fi
+else
+  # Config exists but i18n was removed - reinstall i18n bundle
+  echo "Reinstalling i18n bundle..."
+  /usr/bin/answer i18n -t /data/i18n/
 fi
 
 # Run the application
