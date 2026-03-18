@@ -88,9 +88,9 @@ backend:
       description:
         other: 自定义等级
     rank_question_add_label:
-      other: 提问
+      other: 发帖
     rank_answer_add_label:
-      other: 写答案
+      other: 写回复
     rank_comment_add_label:
       other: 写评论
     rank_report_add_label:
@@ -100,31 +100,31 @@ backend:
     rank_link_url_limit_label:
       other: 每次发布超过 2 个链接
     rank_question_vote_up_label:
-      other: 点赞问题
+      other: 点赞帖子
     rank_answer_vote_up_label:
-      other: 点赞答案
+      other: 点赞回复
     rank_question_vote_down_label:
-      other: 点踩问题
+      other: 点踩帖子
     rank_answer_vote_down_label:
-      other: 点踩答案
+      other: 点踩回复
     rank_invite_someone_to_answer_label:
-      other: 邀请回答
+      other: 邀请回复
     rank_tag_add_label:
       other: 创建新标签
     rank_tag_edit_label:
       other: 编辑标签描述（需要审核）
     rank_question_edit_label:
-      other: 编辑别人的问题（需要审核）
+      other: 编辑别人的帖子（需要审核）
     rank_answer_edit_label:
-      other: 编辑别人的答案（需要审核）
+      other: 编辑别人的回复（需要审核）
     rank_question_edit_without_review_label:
-      other: 编辑别人的问题无需审核
+      other: 编辑别人的帖子无需审核
     rank_answer_edit_without_review_label:
-      other: 编辑别人的答案无需审核
+      other: 编辑别人的回复无需审核
     rank_question_audit_label:
-      other: 审核问题编辑
+      other: 审核帖子编辑
     rank_answer_audit_label:
-      other: 审核回答编辑
+      other: 审核回复编辑
     rank_tag_audit_label:
       other: 审核标签编辑
     rank_tag_edit_without_review_label:
@@ -165,15 +165,15 @@ backend:
         other: 邮箱和密码不匹配。
     answer:
       not_found:
-        other: 没有找到答案。
+        other: 没有找到回复。
       cannot_deleted:
         other: 没有删除权限。
       cannot_update:
         other: 没有更新权限。
       question_closed_cannot_add:
-        other: 问题已关闭，无法添加。
+        other: 帖子已关闭，无法添加。
       content_cannot_empty:
-        other: 回答内容不能为空。
+        other: 回复内容不能为空。
     comment:
       edit_without_permission:
         other: 不允许编辑评论。
@@ -225,7 +225,7 @@ backend:
       under_review:
         other: 您的帖子正在等待审核。它将在它获得批准后可见。
       not_found:
-        other: 问题未找到。
+        other: 帖子未找到。
       cannot_deleted:
         other: 没有删除权限。
       cannot_close:
@@ -353,14 +353,14 @@ backend:
       name:
         other: 重复内容
       desc:
-        other: 该问题有人问过，而且已经有了答案。
+        other: 该帖子有人发过，而且已经有了回复。
       placeholder:
-        other: 输入已有的问题链接
+        other: 输入已有的帖子链接
     not_a_answer:
       name:
-        other: 不是答案
+        other: 不是回复
       desc:
-        other: "该帖是作为答案发布的，但它并没有试图回答这个问题。总之，它可能应该是个编辑、评论、另一个问题或者需要被删除。"
+        other: "该帖是作为回复发布的，但它并没有试图回复这个帖子。总之，它可能应该是个编辑、评论、另一个帖子或者需要被删除。"
     no_longer_needed:
       name:
         other: 不再需要
@@ -377,12 +377,12 @@ backend:
       name:
         other: 社区特定原因
       desc:
-        other: 该问题不符合社区准则。
+        other: 该帖子不符合社区准则。
     not_clarity:
       name:
         other: 需要细节或澄清
       desc:
-        other: 该问题目前涵盖多个问题。它应该侧重在一个问题上。
+        other: 该帖子目前涵盖多个主题。它应该侧重在一个主题上。
     looks_ok:
       name:
         other: 看起来没问题
@@ -397,7 +397,7 @@ backend:
       name:
         other: 需要关闭
       desc:
-        other: 关闭的问题不能回答，但仍然可以编辑、投票和评论。
+        other: 关闭的帖子不能回复，但仍然可以编辑、投票和评论。
     needs_delete:
       name:
         other: 需要删除
@@ -409,17 +409,17 @@ backend:
         name:
           other: 垃圾信息
         desc:
-          other: 此问题以前就有人问过，而且已经有了答案。
+          other: 此帖子以前就有人发过，而且已经有了回复。
       guideline:
         name:
           other: 社区特定原因
         desc:
-          other: 该问题不符合社区准则。
+          other: 该帖子不符合社区准则。
       multiple:
         name:
           other: 需要细节或澄清
         desc:
-          other: 该问题目前涵盖多个问题。它应该只集中在一个问题上。
+          other: 该帖子目前涵盖多个主题。它应该只集中在一个主题上。
       other:
         name:
           other: 其他原因
@@ -427,15 +427,15 @@ backend:
           other: 该帖子存在上面没有列出的另一个原因。
     operation_type:
       asked:
-        other: 提问于
+        other: 发帖于
       answered:
-        other: 回答于
+        other: 回复于
       modified:
         other: 修改于
     deleted_title:
-      other: 删除的问题
+      other: 删除的帖子
     questions_title:
-      other: 问题
+      other: 帖子
   tag:
     tags_title:
       other: 标签
@@ -444,47 +444,47 @@ backend:
   notification:
     action:
       update_question:
-        other: 更新了问题
+        other: 更新了帖子
       answer_the_question:
-        other: 回答了问题
+        other: 回复了帖子
       update_answer:
-        other: 更新了答案
+        other: 更新了回复
       accept_answer:
-        other: 采纳了答案
+        other: 采纳了回复
       comment_question:
-        other: 评论了问题
+        other: 评论了帖子
       comment_answer:
-        other: 评论了答案
+        other: 评论了回复
       reply_to_you:
         other: 回复了你
       mention_you:
         other: 提到了你
       your_question_is_closed:
-        other: 你的问题已被关闭
+        other: 你的帖子已被关闭
       your_question_was_deleted:
-        other: 你的问题已被删除
+        other: 你的帖子已被删除
       your_answer_was_deleted:
-        other: 你的答案已被删除
+        other: 你的回复已被删除
       your_comment_was_deleted:
         other: 你的评论已被删除
       your_question_needs_review:
-        other: 你的问题需要审核
+        other: 你的帖子需要审核
       your_answer_needs_review:
-        other: 你的答案需要审核
+        other: 你的回复需要审核
       your_comment_needs_review:
         other: 你的评论需要审核
       up_voted_question:
-        other: 点赞问题
+        other: 点赞帖子
       down_voted_question:
-        other: 点踩问题
+        other: 点踩帖子
       up_voted_answer:
-        other: 点赞答案
+        other: 点赞回复
       down_voted_answer:
-        other: 点踩回答
+        other: 点踩回复
       up_voted_comment:
         other: 点赞评论
       invited_you_to_answer:
-        other: 邀请你回答
+        other: 邀请你回复
       earned_badge:
         other: 你获得 "{{.BadgeName}}" 徽章
   email_tpl:
@@ -495,12 +495,12 @@ backend:
         other: "请点击以下链接确认你在 {{.SiteName}} 上的新邮箱地址：<br>\n<a href='{{.ChangeEmailUrl}}' target='_blank'>{{.ChangeEmailUrl}}</a><br><br>\n\n如果你没有请求此更改，请忽略此邮件。\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>"
     new_answer:
       title:
-        other: "[{{.SiteName}}] {{.DisplayName}} 回答了你的问题"
+        other: "[{{.SiteName}}] {{.DisplayName}} 回复了你的帖子"
       body:
         other: "<a href='{{.AnswerUrl}}'>{{.QuestionTitle}}</a><br><br>\n\n{{.DisplayName}}：<br>\n<blockquote>{{.AnswerSummary}}</blockquote><br>\n<a href='{{.AnswerUrl}}'>在 {{.SiteName}} 上查看</a><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     invited_you_to_answer:
       title:
-        other: "[{{.SiteName}}] {{.DisplayName}} 邀请您回答问题"
+        other: "[{{.SiteName}}] {{.DisplayName}} 邀请您回复帖子"
       body:
         other: "<a href='{{.InviteUrl}}'>{{.QuestionTitle}}</a><br><br>\n\n{{.DisplayName}}：<br>\n<blockquote>我想你可能知道答案。</blockquote><br>\n<a href='{{.InviteUrl}}'>在 {{.SiteName}} 上查看</a><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     new_comment:
@@ -510,7 +510,7 @@ backend:
         other: "<a href='{{.CommentUrl}}'>{{.QuestionTitle}}</a><br><br>\n\n{{.DisplayName}}：<br>\n<blockquote>{{.CommentSummary}}</blockquote><br>\n<a href='{{.CommentUrl}}'>在 {{.SiteName}} 上查看</a><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到<br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     new_question:
       title:
-        other: "[{{.SiteName}}] 新问题: {{.QuestionTitle}}"
+        other: "[{{.SiteName}}] 新帖子: {{.QuestionTitle}}"
       body:
         other: "<a href='{{.QuestionUrl}}'>{{.QuestionTitle}}</a><br><br>\n<small>{{.Tags}}</small><br><br>\n\n--<br>\n这是系统自动发送的电子邮件，请勿回复，因为您的回复将不会被看到 <br><br>\n\n<small><a href='{{.UnsubscribeUrl}}'>取消订阅</a></small>"
     pass_reset:
@@ -599,7 +599,7 @@ backend:
         name:
           other: 学者
         desc:
-          other: 问了一个问题并接受了一个答案。
+          other: 发了一个帖子并采纳了一个回复。
       commentator:
         name:
           other: 评论员
@@ -742,49 +742,49 @@ backend:
           other: 有150个答案被接受。
       nice_answer:
         name:
-          other: 好答案
+          other: 好回复
         desc:
-          other: 回答得分为10或以上。
+          other: 回复得分为10或以上。
       good_answer:
         name:
-          other: 好答案
+          other: 好回复
         desc:
-          other: 回答得分为25或更多。
+          other: 回复得分为25或更多。
       great_answer:
         name:
-          other: 优秀答案
+          other: 优秀回复
         desc:
-          other: 回答得分为50或以上。
+          other: 回复得分为50或以上。
       nice_question:
         name:
-          other: 好问题
+          other: 好帖子
         desc:
-          other: 问题得分为10或以上。
+          other: 帖子得分为10或以上。
       good_question:
         name:
-          other: 好问题
+          other: 好帖子
         desc:
-          other: 问题得分为25或更多。
+          other: 帖子得分为25或更多。
       great_question:
         name:
-          other: 很棒的问题
+          other: 很棒的帖子
         desc:
-          other: 问题得分为50或更多。
+          other: 帖子得分为50或更多。
       popular_question:
         name:
-          other: 热门问题
+          other: 热门帖子
         desc:
-          other: 问题有 500 个浏览量。
+          other: 帖子有 500 个浏览量。
       notable_question:
         name:
-          other: 值得关注问题
+          other: 值得关注帖子
         desc:
-          other: 问题有 1,000 个浏览量。
+          other: 帖子有 1,000 个浏览量。
       famous_question:
         name:
-          other: 著名的问题
+          other: 著名的帖子
         desc:
-          other: 问题有 5,000 个浏览量。
+          other: 帖子有 5,000 个浏览量。
       popular_link:
         name:
           other: 热门链接
@@ -815,21 +815,21 @@ ui:
   how_to_format:
     title: 如何排版
     desc: >-
-      <ul class="mb-0"><li><p class="mb-2">引用问题或答案: <code>#4</code></p></li><li><p class="mb-2">添加链接</p><pre class="mb-2"><code>&lt;https://url.com&gt;<br/><br/>[标题](https://url.com)</code></pre></li><li><p class="mb-2">段落之间使用空行分隔</p></li><li><p class="mb-2"><em>_斜体_</em> 或者 **<strong>粗体</strong>**</p></li><li><p class="mb-2">使用  个空格缩进代码</p></li><li><p class="mb-2">在行首添加 <code>&gt;</code> 表示引用</p></li><li><p class="mb-2">反引号进行转义 <code>`像 _这样_`</code></p></li><li><p class="mb-2">使用 <code>```</code> 创建代码块</p><pre class="mb-0"><code>```<br/>这是代码块<br/>```</code></pre></li></ul>
+      <ul class="mb-0"><li><p class="mb-2">引用帖子或回复: <code>#4</code></p></li><li><p class="mb-2">添加链接</p><pre class="mb-2"><code>&lt;https://url.com&gt;<br/><br/>[标题](https://url.com)</code></pre></li><li><p class="mb-2">段落之间使用空行分隔</p></li><li><p class="mb-2"><em>_斜体_</em> 或者 **<strong>粗体</strong>**</p></li><li><p class="mb-2">使用  个空格缩进代码</p></li><li><p class="mb-2">在行首添加 <code>&gt;</code> 表示引用</p></li><li><p class="mb-2">反引号进行转义 <code>`像 _这样_`</code></p></li><li><p class="mb-2">使用 <code>```</code> 创建代码块</p><pre class="mb-0"><code>```<br/>这是代码块<br/>```</code></pre></li></ul>
   pagination:
     prev: 上一页
     next: 下一页
   page_title:
-    question: 问题
-    questions: 问题
+    question: 帖子
+    questions: 帖子
     tag: 标签
     tags: 标签
     tag_wiki: 标签维基
     create_tag: 创建标签
     edit_tag: 编辑标签
-    ask_a_question: 创建问题
-    edit_question: 编辑问题
-    edit_answer: 编辑回答
+    ask_a_question: 创建帖子
+    edit_question: 编辑帖子
+    edit_answer: 编辑回复
     search: 搜索
     posts_containing: 帖子包含
     settings: 设置
@@ -875,8 +875,8 @@ ui:
       posts: 帖子
       invites: 邀请
       votes: 投票
-    answer: 回答
-    question: 问题
+    answer: 回复
+    question: 帖子
     badge_award: 徽章
   suspended:
     title: 你的账号账号已被封禁
@@ -1000,8 +1000,8 @@ ui:
   report_modal:
     flag_title: 我举报这篇帖子的原因是...
     close_title: 我关闭这篇帖子的原因是...
-    review_question_title: 审查问题
-    review_answer_title: 审查回答
+    review_question_title: 审查帖子
+    review_answer_title: 审查回复
     review_comment_title: 审查评论
     btn_cancel: 取消
     btn_submit: 提交
@@ -1112,15 +1112,15 @@ ui:
       使用评论对回答者进行回复，或者通知回答者你已更新了问题的内容。如果要补充或者完善问题的内容，请在原问题中更改。
     tip_vote: 它给帖子添加了一些有用的内容
   edit_answer:
-    title: 编辑回答
-    default_reason: 编辑回答
-    default_first_reason: 添加答案
+    title: 编辑回复
+    default_reason: 编辑回复
+    default_first_reason: 添加回复
     form:
       fields:
         revision:
           label: 编辑历史
         answer:
-          label: 回答内容
+          label: 回复内容
           feedback:
             characters: 内容长度至少 6 个字符
         edit_summary:
@@ -1137,14 +1137,14 @@ ui:
       newest: 最新
     button_follow: 关注
     button_following: 已关注
-    tag_label: 个问题
+    tag_label: 个帖子
     search_placeholder: 通过标签名称过滤
     no_desc: 此标签无描述。
     more: 更多
     wiki: 维基
   ask:
-    title: 创建问题
-    edit_title: 编辑问题
+    title: 创建帖子
+    edit_title: 编辑帖子
     default_reason: 编辑问题
     default_first_reason: 创建问题
     similar_questions: 相似问题
@@ -1163,24 +1163,24 @@ ui:
           msg:
             empty: 内容不能为空。
           hint:
-            optional_body: 描述这个问题是什么。
-            minimum_characters: "详细描述这个问题，至少需要 {{min_content_length}} 字符。"
+            optional_body: 描述这个帖子是什么。
+            minimum_characters: "详细描述这个帖子，至少需要 {{min_content_length}} 字符。"
         tags:
           label: 标签
           msg:
             empty: 必须选择一个标签
         answer:
-          label: 回答内容
+          label: 回复内容
           msg:
-            empty: 回答内容不能为空
+            empty: 回复内容不能为空
         edit_summary:
           label: 编辑备注
           placeholder: >-
             简单描述更改原因（更正拼写、修复语法、改进格式）
-    btn_post_question: 提交问题
+    btn_post_question: 提交帖子
     btn_save_edits: 保存更改
-    answer_question: 回答自己的问题
-    post_question&answer: 提交问题和回答
+    answer_question: 回复自己的帖子
+    post_question&answer: 提交帖子和回复
   tag_selector:
     add_btn: 添加标签
     create_btn: 创建新标签
@@ -1192,7 +1192,7 @@ ui:
     tag_required_text: 必选标签（至少一个）
   header:
     nav:
-      question: 问题
+      question: 帖子
       tag: 标签
       user: 用户
       badges: 徽章
