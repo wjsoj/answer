@@ -283,7 +283,6 @@ func (a *AnswerAPIRouter) RegisterAnswerAPIRouter(r *gin.RouterGroup) {
 	// answer
 	r.POST("/answer", a.answerController.AddAnswer)
 	r.PUT("/answer", a.answerController.UpdateAnswer)
-	r.POST("/answer/acceptance", a.answerController.AcceptAnswer)
 	r.DELETE("/answer", a.answerController.RemoveAnswer)
 	r.POST("/answer/recover", a.answerController.RecoverAnswer)
 

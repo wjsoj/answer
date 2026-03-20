@@ -136,9 +136,6 @@ func (as *AnswerService) RemoveAnswer(ctx context.Context, req *schema.RemoveAns
 		if answerInfo.VoteCount > 0 {
 			return errors.BadRequest(reason.AnswerCannotDeleted)
 		}
-		if answerInfo.Accepted == schema.AnswerAcceptedEnable {
-			return errors.BadRequest(reason.AnswerCannotDeleted)
-		}
 		_, exist, err := as.questionRepo.GetQuestion(ctx, answerInfo.QuestionID)
 		if err != nil {
 			return errors.BadRequest(reason.AnswerCannotDeleted)
@@ -448,86 +445,87 @@ func (as *AnswerService) Update(ctx context.Context, req *schema.AnswerUpdateReq
 }
 
 // AcceptAnswer accept answer
-func (as *AnswerService) AcceptAnswer(ctx context.Context, req *schema.AcceptAnswerReq) (err error) {
-	// find question
-	questionInfo, exist, err := as.questionRepo.GetQuestion(ctx, req.QuestionID)
-	if err != nil {
-		return err
-	}
-	if !exist {
-		return errors.BadRequest(reason.QuestionNotFound)
-	}
-	questionInfo.ID = uid.DeShortID(questionInfo.ID)
-	if questionInfo.AcceptedAnswerID == req.AnswerID {
-		return nil
-	}
+// Deprecated: This function is no longer used as the acceptance feature has been removed.
+// func (as *AnswerService) AcceptAnswer(ctx context.Context, req *schema.AcceptAnswerReq) (err error) {
+// 	// find question
+// 	questionInfo, exist, err := as.questionRepo.GetQuestion(ctx, req.QuestionID)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if !exist {
+// 		return errors.BadRequest(reason.QuestionNotFound)
+// 	}
+// 	questionInfo.ID = uid.DeShortID(questionInfo.ID)
+// 	if questionInfo.AcceptedAnswerID == req.AnswerID {
+// 		return nil
+// 	}
+//
+// 	// find answer
+// 	var acceptedAnswerInfo *entity.Answer
+// 	if len(req.AnswerID) > 1 {
+// 		acceptedAnswerInfo, exist, err = as.answerRepo.GetByID(ctx, req.AnswerID)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if !exist {
+// 			return errors.BadRequest(reason.AnswerNotFound)
+// 		}
+//
+// 		// check answer belong to question
+// 		if acceptedAnswerInfo.QuestionID != req.QuestionID {
+// 			return errors.BadRequest(reason.AnswerNotFound)
+// 		}
+// 		acceptedAnswerInfo.ID = uid.DeShortID(acceptedAnswerInfo.ID)
+// 	}
+//
+// 	// update answers status
+// 	if err = as.answerRepo.UpdateAcceptedStatus(ctx, req.AnswerID, req.QuestionID); err != nil {
+// 		return err
+// 	}
+//
+// 	// update question status
+// 	err = as.questionCommon.UpdateAccepted(ctx, req.QuestionID, req.AnswerID)
+// 	if err != nil {
+// 		log.Error("UpdateLastAnswer error", err.Error())
+// 	}
+//
+// 	var oldAnswerInfo *entity.Answer
+// 	if len(questionInfo.AcceptedAnswerID) > 1 {
+// 		oldAnswerInfo, _, err = as.answerRepo.GetByID(ctx, questionInfo.AcceptedAnswerID)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		oldAnswerInfo.ID = uid.DeShortID(oldAnswerInfo.ID)
+// 	}
+//
+// 	if acceptedAnswerInfo != nil {
+// 		as.eventQueueService.Send(ctx, schema.NewEvent(constant.EventQuestionAccept, req.UserID).TID(acceptedAnswerInfo.ID).
+// 			QID(questionInfo.ID, questionInfo.UserID).AID(acceptedAnswerInfo.ID, acceptedAnswerInfo.UserID))
+// 	}
+//
+// 	as.updateAnswerRank(ctx, req.UserID, questionInfo, acceptedAnswerInfo, oldAnswerInfo)
+// 	return nil
+// }
 
-	// find answer
-	var acceptedAnswerInfo *entity.Answer
-	if len(req.AnswerID) > 1 {
-		acceptedAnswerInfo, exist, err = as.answerRepo.GetByID(ctx, req.AnswerID)
-		if err != nil {
-			return err
-		}
-		if !exist {
-			return errors.BadRequest(reason.AnswerNotFound)
-		}
-
-		// check answer belong to question
-		if acceptedAnswerInfo.QuestionID != req.QuestionID {
-			return errors.BadRequest(reason.AnswerNotFound)
-		}
-		acceptedAnswerInfo.ID = uid.DeShortID(acceptedAnswerInfo.ID)
-	}
-
-	// update answers status
-	if err = as.answerRepo.UpdateAcceptedStatus(ctx, req.AnswerID, req.QuestionID); err != nil {
-		return err
-	}
-
-	// update question status
-	err = as.questionCommon.UpdateAccepted(ctx, req.QuestionID, req.AnswerID)
-	if err != nil {
-		log.Error("UpdateLastAnswer error", err.Error())
-	}
-
-	var oldAnswerInfo *entity.Answer
-	if len(questionInfo.AcceptedAnswerID) > 1 {
-		oldAnswerInfo, _, err = as.answerRepo.GetByID(ctx, questionInfo.AcceptedAnswerID)
-		if err != nil {
-			return err
-		}
-		oldAnswerInfo.ID = uid.DeShortID(oldAnswerInfo.ID)
-	}
-
-	if acceptedAnswerInfo != nil {
-		as.eventQueueService.Send(ctx, schema.NewEvent(constant.EventQuestionAccept, req.UserID).TID(acceptedAnswerInfo.ID).
-			QID(questionInfo.ID, questionInfo.UserID).AID(acceptedAnswerInfo.ID, acceptedAnswerInfo.UserID))
-	}
-
-	as.updateAnswerRank(ctx, req.UserID, questionInfo, acceptedAnswerInfo, oldAnswerInfo)
-	return nil
-}
-
-func (as *AnswerService) updateAnswerRank(ctx context.Context, userID string,
-	questionInfo *entity.Question, newAnswerInfo *entity.Answer, oldAnswerInfo *entity.Answer,
-) {
-	// if this question is already been answered, should cancel old answer rank
-	if oldAnswerInfo != nil {
-		err := as.answerActivityService.CancelAcceptAnswer(ctx, userID,
-			questionInfo.AcceptedAnswerID, questionInfo.ID, questionInfo.UserID, oldAnswerInfo.UserID)
-		if err != nil {
-			log.Error(err)
-		}
-	}
-	if newAnswerInfo != nil {
-		err := as.answerActivityService.AcceptAnswer(ctx, userID, newAnswerInfo.ID,
-			questionInfo.ID, questionInfo.UserID, newAnswerInfo.UserID, newAnswerInfo.UserID == questionInfo.UserID)
-		if err != nil {
-			log.Error(err)
-		}
-	}
-}
+// func (as *AnswerService) updateAnswerRank(ctx context.Context, userID string,
+// 	questionInfo *entity.Question, newAnswerInfo *entity.Answer, oldAnswerInfo *entity.Answer,
+// ) {
+// 	// if this question is already been answered, should cancel old answer rank
+// 	if oldAnswerInfo != nil {
+// 		err := as.answerActivityService.CancelAcceptAnswer(ctx, userID,
+// 			questionInfo.AcceptedAnswerID, questionInfo.ID, questionInfo.UserID, oldAnswerInfo.UserID)
+// 		if err != nil {
+// 			log.Error(err)
+// 		}
+// 	}
+// 	if newAnswerInfo != nil {
+// 		err := as.answerActivityService.AcceptAnswer(ctx, userID, newAnswerInfo.ID,
+// 			questionInfo.ID, questionInfo.UserID, newAnswerInfo.UserID, newAnswerInfo.UserID == questionInfo.UserID)
+// 		if err != nil {
+// 			log.Error(err)
+// 		}
+// 	}
+// }
 
 func (as *AnswerService) Get(ctx context.Context, answerID, loginUserID string) (*schema.AnswerInfo, *schema.QuestionInfoResp, bool, error) {
 	answerInfo, has, err := as.answerRepo.GetByID(ctx, answerID)

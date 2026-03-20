@@ -325,7 +325,7 @@ func (m *Mentor) initSiteInfoQuestions() {
 	questionsData := map[string]any{
 		"min_tags":        1,
 		"min_content":     6,
-		"restrict_answer": true,
+		"restrict_answer": false,
 	}
 	questionsDataBytes, _ := json.Marshal(questionsData)
 	_, m.err = m.engine.Context(m.ctx).Insert(&entity.SiteInfo{

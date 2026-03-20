@@ -32,7 +32,7 @@ const AnswerActions = ({ itemData, curFilter, refreshList }) => {
     if (type === 'delete') {
       Modal.confirm({
         title: t('title'),
-        content: itemData.accepted === 2 ? t('answer_accepted') : t('other'),
+        content: t('other'),
         cancelBtnVariant: 'link',
         confirmBtnVariant: 'danger',
         confirmText: t('delete', { keyPrefix: 'btns' }),

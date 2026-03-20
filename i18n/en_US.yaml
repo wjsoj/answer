@@ -1485,8 +1485,6 @@ ui:
       score: Score
       newest: Newest
       oldest: Oldest
-      btn_accept: Accept
-      btn_accepted: Accepted
     write_answer:
       title: Your Answer
       edit_answer: Edit my existing answer

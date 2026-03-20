@@ -57,7 +57,6 @@ const Index: FC<Props> = ({ visible, data }) => {
                 data={{ votes: item?.vote_count, views: 0, answers: 0 }}
                 showAnswers={false}
                 showViews={false}
-                showAccepted={item.accepted === 2}
               />
             </div>
             <div>

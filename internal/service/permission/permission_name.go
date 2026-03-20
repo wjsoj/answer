@@ -37,7 +37,6 @@ const (
 	AnswerEdit                  = "answer.edit"
 	AnswerEditWithoutReview     = "answer.edit_without_review"
 	AnswerDelete                = "answer.delete"
-	AnswerAccept                = "answer.accept"
 	AnswerVoteUp                = "answer.vote_up"
 	AnswerVoteDown              = "answer.vote_down"
 	AnswerInviteSomeoneToAnswer = "answer.invite_someone_to_answer"

@@ -73,7 +73,6 @@ const Index: FC<Props> = ({ visible, tabName, data }) => {
               />
 
               <Counts
-                isAccepted={Number(item.accepted_answer_id) > 0}
                 data={{
                   votes: item.vote_count,
                   answers: item.answer_count,

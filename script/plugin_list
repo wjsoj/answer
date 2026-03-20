@@ -4,3 +4,5 @@ github.com/apache/answer-plugins/captcha-basic@latest
 github.com/apache/answer-plugins/quick-links@latest
 github.com/apache/answer-plugins/editor-formula@latest
 github.com/apache/answer-plugins/render-markdown-codehighlight@latest
+github.com/apache/answer-plugins/storage-s3@latest
+github.com/apache/answer-plugins/search-meilisearch@latest

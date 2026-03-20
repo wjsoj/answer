@@ -404,6 +404,7 @@ func (ac *AnswerController) AnswerList(ctx *gin.Context) {
 }
 
 // AcceptAnswer accept answer
+// Deprecated: This endpoint is no longer used as the acceptance feature has been removed.
 // @Summary Accept Answer
 // @Description Accept Answer
 // @Tags Answer
@@ -413,28 +414,28 @@ func (ac *AnswerController) AnswerList(ctx *gin.Context) {
 // @Param data body schema.AcceptAnswerReq true "AcceptAnswerReq"
 // @Success 200 {object} handler.RespBody{}
 // @Router /answer/api/v1/answer/acceptance [post]
-func (ac *AnswerController) AcceptAnswer(ctx *gin.Context) {
-	req := &schema.AcceptAnswerReq{}
-	if handler.BindAndCheck(ctx, req) {
-		return
-	}
-
-	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
-	req.AnswerID = uid.DeShortID(req.AnswerID)
-	req.QuestionID = uid.DeShortID(req.QuestionID)
-	can, err := ac.rankService.CheckOperationPermission(ctx, req.UserID, permission.AnswerAccept, req.QuestionID)
-	if err != nil {
-		handler.HandleResponse(ctx, err, nil)
-		return
-	}
-	if !can {
-		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
-		return
-	}
-
-	err = ac.answerService.AcceptAnswer(ctx, req)
-	handler.HandleResponse(ctx, err, nil)
-}
+// func (ac *AnswerController) AcceptAnswer(ctx *gin.Context) {
+// 	req := &schema.AcceptAnswerReq{}
+// 	if handler.BindAndCheck(ctx, req) {
+// 		return
+// 	}
+//
+// 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
+// 	req.AnswerID = uid.DeShortID(req.AnswerID)
+// 	req.QuestionID = uid.DeShortID(req.QuestionID)
+// 	can, err := ac.rankService.CheckOperationPermission(ctx, req.UserID, permission.AnswerAccept, req.QuestionID)
+// 	if err != nil {
+// 		handler.HandleResponse(ctx, err, nil)
+// 		return
+// 	}
+// 	if !can {
+// 		handler.HandleResponse(ctx, errors.Forbidden(reason.RankFailToMeetTheCondition), nil)
+// 		return
+// 	}
+//
+// 	err = ac.answerService.AcceptAnswer(ctx, req)
+// 	handler.HandleResponse(ctx, err, nil)
+// }
 
 // AdminUpdateAnswerStatus update answer status
 // @Summary update answer status

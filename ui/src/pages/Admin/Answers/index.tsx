@@ -26,7 +26,6 @@ import classNames from 'classnames';
 
 import {
   FormatTime,
-  Icon,
   Pagination,
   BaseUserCard,
   Empty,
@@ -157,12 +156,6 @@ const Answers: FC = () => {
                     rel="noreferrer">
                     {li.question_info.title}
                   </Link>
-                  {li.accepted === 2 && (
-                    <Icon
-                      name="check-circle-fill"
-                      className="ms-2 text-success"
-                    />
-                  )}
                   <div className="text-truncate-2 small max-w-30">
                     {escapeRemove(li.description)}
                   </div>

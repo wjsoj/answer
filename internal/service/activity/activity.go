@@ -334,8 +334,5 @@ func formatActivity(activityType string) (isHidden bool, formattedActivityType s
 	if activityType == constant.ActVoteDown {
 		return false, constant.ActDownVote
 	}
-	if activityType == constant.ActAccepted {
-		return false, constant.ActAccept
-	}
 	return false, activityType
 }

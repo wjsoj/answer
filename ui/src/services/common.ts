@@ -251,13 +251,6 @@ export const following = (params: {
   );
 };
 
-export const acceptanceAnswer = (params: {
-  answer_id?: string;
-  question_id: string;
-}) => {
-  return request.post('/answer/api/v1/answer/acceptance', params);
-};
-
 export const reportList = ({
   type,
   action,

@@ -209,7 +209,6 @@ const QuestionList: FC<Props> = ({
                         answers: li.answer_count,
                         views: li.view_count,
                       }}
-                      isAccepted={li.accepted_answer_id >= 1}
                       className="mt-2 mt-md-0"
                     />
                   </div>

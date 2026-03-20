@@ -48,7 +48,6 @@ interface IProps {
   aid?: string;
   title: string;
   hasAnswer?: boolean;
-  isAccepted: boolean;
   callback: (type: string) => void;
   memberActions;
 }
@@ -57,7 +56,6 @@ const Index: FC<IProps> = ({
   qid,
   aid = '',
   title,
-  isAccepted = false,
   hasAnswer = false,
   memberActions = [],
   callback,
@@ -163,7 +161,7 @@ const Index: FC<IProps> = ({
     if (type === 'answer' && aid) {
       Modal.confirm({
         title: t('title'),
-        content: isAccepted ? t('answer_accepted') : t('other'),
+        content: t('other'),
         cancelBtnVariant: 'link',
         confirmBtnVariant: 'danger',
         confirmText: t('delete', { keyPrefix: 'btns' }),

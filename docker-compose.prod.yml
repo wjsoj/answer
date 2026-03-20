@@ -1,0 +1,85 @@
+services:
+  answer:
+    image: git.pku.edu.cn/2200011523/answer:${IMAGE_TAG:-latest}
+    container_name: answer
+    restart: unless-stopped
+    ports:
+      - "9080:80"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - AUTO_INSTALL=true
+      - DB_TYPE=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-answer}
+      - DB_USER=${POSTGRES_USER:-answer}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-answer_secure_password}
+      - LANGUAGE=zh_CN
+      - SITE_NAME=${SITE_NAME:-Forum}
+      - SITE_URL=${SITE_URL:-http://localhost:9080}
+      - CONTACT_EMAIL=${CONTACT_EMAIL:-admin@example.com}
+      - ADMIN_NAME=${ADMIN_NAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123456}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+      - EXTERNAL_CONTENT_DISPLAY=always_display
+    networks:
+      - answer-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/bin/answer", "check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: answer-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-answer}
+      - POSTGRES_USER=${POSTGRES_USER:-answer}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-answer_secure_password}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - answer-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-answer} -d ${POSTGRES_DB:-answer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.16
+    container_name: answer-meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-your_meilisearch_master_key_here}
+      - MEILI_DB_PATH=/meili_data
+      - MEILI_HTTP_ADDR=0.0.0.0:7700
+    volumes:
+      - ./meili_data:/meili_data
+    networks:
+      - answer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  answer-network:
+    driver: bridge

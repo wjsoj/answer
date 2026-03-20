@@ -42,8 +42,8 @@ type RecoverAnswerReq struct {
 }
 
 const (
-	AnswerAcceptedFailed = 1
-	AnswerAcceptedEnable = 2
+	AnswerAcceptedFailed = 1 // Deprecated: no longer used
+	AnswerAcceptedEnable = 2 // Deprecated: no longer used
 )
 
 type AnswerAddReq struct {
@@ -163,6 +163,7 @@ type AcceptAnswerReq struct {
 	UserID     string `json:"-"`
 }
 
+// Deprecated: This function is no longer used as the acceptance feature has been removed.
 func (req *AcceptAnswerReq) Check() (errFields []*validator.FormErrorField, err error) {
 	if len(req.AnswerID) == 0 {
 		req.AnswerID = "0"

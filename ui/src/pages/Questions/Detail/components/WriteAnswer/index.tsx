@@ -20,7 +20,6 @@
 import { memo, useState, FC, useEffect } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
 import { useTranslation, Trans } from 'react-i18next';
-import { Link } from 'react-router-dom';
 
 import { marked } from 'marked';
 import classNames from 'classnames';
@@ -324,21 +323,14 @@ const Index: FC<Props> = ({ visible = false, data, callback }) => {
         </Form.Group>
       )}
 
-      {data.answered && !showEditor ? (
-        // the 0th answer is the oldest one
-        <Link
-          to={`/posts/${data.qid}/${data.first_answer_id}/edit`}
-          className="btn btn-primary">
-          {t('edit_answer')}
-        </Link>
-      ) : (
+      {showEditor || !data.answered ? (
         <Button onClick={clickBtn}>{t('btn_name')}</Button>
-      )}
-
-      {data.answered && !showEditor && !writeInfo.restrict_answer && (
-        <Button onClick={clickBtn} className="ms-2 " variant="outline-primary">
-          {t('add_another_answer')}
-        </Button>
+      ) : (
+        !writeInfo.restrict_answer && (
+          <Button onClick={clickBtn} className="ms-2" variant="outline-primary">
+            {t('add_another_answer')}
+          </Button>
+        )
       )}
 
       {hasDraft && (

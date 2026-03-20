@@ -76,9 +76,6 @@ const Index = () => {
   });
   const { setUsers } = usePageUsers();
   const userInfo = loggedUserInfoStore((state) => state.user);
-  const isAuthor = userInfo?.username === question?.user_info?.username;
-  const isAdmin = userInfo?.role_id === 2;
-  const isModerator = userInfo?.role_id === 3;
   const isLogged = Boolean(userInfo?.access_token);
   const loggedUserRank = userInfo?.rank;
   const location = useLocation();
@@ -110,7 +107,8 @@ const Index = () => {
         // delete answers only show to author and admin and has search params aid
         if (v.status === 10) {
           if (
-            (v?.user_info?.username === userInfo?.username || isAdmin) &&
+            (v?.user_info?.username === userInfo?.username ||
+              userInfo?.role_id === 2) &&
             aid === v.id
           ) {
             return v;
@@ -266,7 +264,6 @@ const Index = () => {
                   key={item?.id}
                   data={item}
                   questionTitle={question?.title || ''}
-                  canAccept={isAuthor || isAdmin || isModerator}
                   callback={initPage}
                   isLogged={isLogged}
                 />

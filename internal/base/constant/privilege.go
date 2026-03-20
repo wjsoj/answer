@@ -36,7 +36,6 @@ const (
 	RankAnswerAddKey                 = "rank.answer.add"
 	RankAnswerEditKey                = "rank.answer.edit"
 	RankAnswerDeleteKey              = "rank.answer.delete"
-	RankAnswerAcceptKey              = "rank.answer.accept"
 	RankAnswerVoteUpKey              = "rank.answer.vote_up"
 	RankAnswerVoteDownKey            = "rank.answer.vote_down"
 	RankInviteSomeoneToAnswerKey     = "rank.answer.invite_someone_to_answer"

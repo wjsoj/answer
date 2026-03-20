@@ -1036,43 +1036,44 @@ func (c *MCPController) MCPFollowHandler() func(ctx context.Context, request mcp
 }
 
 // Accept answer handler
+// Deprecated: This handler is no longer used as the acceptance feature has been removed.
 
-func (c *MCPController) MCPAcceptAnswerHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		if err := c.ensureMCPEnabled(ctx); err != nil {
-			return nil, err
-		}
-
-		userID := c.getUserIDFromContext(ctx)
-		if userID == "" {
-			return mcp.NewToolResultError("Authentication required"), nil
-		}
-		if c.isReadOnlyScope(ctx) {
-			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
-		}
-
-		args := request.GetArguments()
-		questionID, _ := args[schema.MCPSearchCondQuestionID].(string)
-		answerID, _ := args[schema.MCPSearchCondAnswerID].(string)
-
-		if questionID == "" || answerID == "" {
-			return mcp.NewToolResultError("question_id and answer_id are required"), nil
-		}
-
-		req := &schema.AcceptAnswerReq{
-			QuestionID: questionID,
-			AnswerID:   answerID,
-			UserID:     userID,
-		}
-
-		err := c.answerService.AcceptAnswer(ctx, req)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("Failed to accept answer: %v", err)), nil
-		}
-
-		return mcp.NewToolResultText("Answer accepted successfully"), nil
-	}
-}
+// func (c *MCPController) MCPAcceptAnswerHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// 		if err := c.ensureMCPEnabled(ctx); err != nil {
+// 			return nil, err
+// 		}
+//
+// 		userID := c.getUserIDFromContext(ctx)
+// 		if userID == "" {
+// 			return mcp.NewToolResultError("Authentication required"), nil
+// 		}
+// 		if c.isReadOnlyScope(ctx) {
+// 			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+// 		}
+//
+// 		args := request.GetArguments()
+// 		questionID, _ := args[schema.MCPSearchCondQuestionID].(string)
+// 		answerID, _ := args[schema.MCPSearchCondAnswerID].(string)
+//
+// 		if questionID == "" || answerID == "" {
+// 			return mcp.NewToolResultError("question_id and answer_id are required"), nil
+// 		}
+//
+// 		req := &schema.AcceptAnswerReq{
+// 			QuestionID: questionID,
+// 			AnswerID:   answerID,
+// 			UserID:     userID,
+// 		}
+//
+// 		err := c.answerService.AcceptAnswer(ctx, req)
+// 		if err != nil {
+// 			return mcp.NewToolResultError(fmt.Sprintf("Failed to accept answer: %v", err)), nil
+// 		}
+//
+// 		return mcp.NewToolResultText("Answer accepted successfully"), nil
+// 	}
+// }
 
 // Get question detail handler
 

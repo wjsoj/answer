@@ -59,7 +59,7 @@ func (a *AnswerAPIRouter) RegisterMCPRouter(r *gin.RouterGroup) {
 	s.AddTool(mcp_tools.NewCollectionSwitchTool(), a.mcpController.MCPCollectionSwitchHandler())
 	s.AddTool(mcp_tools.NewPersonalCollectionsTool(), a.mcpController.MCPPersonalCollectionsHandler())
 	s.AddTool(mcp_tools.NewFollowTool(), a.mcpController.MCPFollowHandler())
-	s.AddTool(mcp_tools.NewAcceptAnswerTool(), a.mcpController.MCPAcceptAnswerHandler())
+	// s.AddTool(mcp_tools.NewAcceptAnswerTool(), a.mcpController.MCPAcceptAnswerHandler())
 	s.AddTool(mcp_tools.NewGetQuestionDetailTool(), a.mcpController.MCPGetQuestionDetailHandler())
 	s.AddTool(mcp_tools.NewGetAnswerDetailTool(), a.mcpController.MCPGetAnswerDetailHandler())
 	s.AddTool(mcp_tools.NewReportContentTool(), a.mcpController.MCPReportContentHandler())

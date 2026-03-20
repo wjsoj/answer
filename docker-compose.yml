@@ -1,4 +1,3 @@
-
 services:
   answer:
     image: git.pku.edu.cn/2200011523/answer:${IMAGE_TAG:-latest}
@@ -14,21 +13,14 @@ services:
       - DB_TYPE=sqlite3
       - DB_FILE=/data/answer.db
       - LANGUAGE=zh_CN
-      - SITE_NAME=Test Forum
-      - SITE_URL=http://localhost:9080
-      - CONTACT_EMAIL=admin@example.com
-      - ADMIN_NAME=admin
-      - ADMIN_PASSWORD=admin123456
-      - ADMIN_EMAIL=admin@example.com
-      - EXTERNAL_CONTENT_DISPLAY=always_display
+      - SITE_NAME=${SITE_NAME:-Test Forum}
+      - SITE_URL=${SITE_URL:-http://localhost:9080}
+      - CONTACT_EMAIL=${CONTACT_EMAIL:-admin@example.com}
+      - ADMIN_NAME=${ADMIN_NAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123456}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
     networks:
       - answer-network
-    healthcheck:
-      test: ["CMD", "/usr/bin/answer", "check"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 networks:
   answer-network:

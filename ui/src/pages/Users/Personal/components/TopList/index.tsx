@@ -77,13 +77,6 @@ const Index: FC<Props> = ({ data, type }) => {
                   </span>
                 </div>
               )}
-
-              {type === 'answer' && item.accepted === 2 && (
-                <div className="d-inline-block text-success ms-3 small">
-                  <Icon name="check-circle-fill" />
-                  <span> {t('accepted')}</span>
-                </div>
-              )}
             </div>
           </li>
         );

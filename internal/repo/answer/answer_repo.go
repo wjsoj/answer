@@ -230,30 +230,31 @@ func (ar *answerRepo) GetAnswerPage(ctx context.Context, page, pageSize int, ans
 }
 
 // UpdateAcceptedStatus update all accepted status of this question's answers
-func (ar *answerRepo) UpdateAcceptedStatus(ctx context.Context, acceptedAnswerID string, questionID string) error {
-	acceptedAnswerID = uid.DeShortID(acceptedAnswerID)
-	questionID = uid.DeShortID(questionID)
-
-	// update all this question's answer accepted status to false
-	_, err := ar.data.DB.Context(ctx).Where("question_id = ?", questionID).Cols("adopted").Update(&entity.Answer{
-		Accepted: schema.AnswerAcceptedFailed,
-	})
-	if err != nil {
-		return errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
-	}
-
-	// if acceptedAnswerID is not empty, update accepted status to true
-	if len(acceptedAnswerID) > 0 && acceptedAnswerID != "0" {
-		_, err = ar.data.DB.Context(ctx).Where("id = ?", acceptedAnswerID).Cols("adopted").Update(&entity.Answer{
-			Accepted: schema.AnswerAcceptedEnable,
-		})
-		if err != nil {
-			return errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
-		}
-	}
-	_ = ar.updateSearch(ctx, acceptedAnswerID)
-	return nil
-}
+// Deprecated: This function is no longer used as the acceptance feature has been removed.
+// func (ar *answerRepo) UpdateAcceptedStatus(ctx context.Context, acceptedAnswerID string, questionID string) error {
+// 	acceptedAnswerID = uid.DeShortID(acceptedAnswerID)
+// 	questionID = uid.DeShortID(questionID)
+//
+// 	// update all this question's answer accepted status to false
+// 	_, err := ar.data.DB.Context(ctx).Where("question_id = ?", questionID).Cols("adopted").Update(&entity.Answer{
+// 		Accepted: schema.AnswerAcceptedFailed,
+// 	})
+// 	if err != nil {
+// 		return errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+// 	}
+//
+// 	// if acceptedAnswerID is not empty, update accepted status to true
+// 	if len(acceptedAnswerID) > 0 && acceptedAnswerID != "0" {
+// 		_, err = ar.data.DB.Context(ctx).Where("id = ?", acceptedAnswerID).Cols("adopted").Update(&entity.Answer{
+// 			Accepted: schema.AnswerAcceptedEnable,
+// 		})
+// 		if err != nil {
+// 			return errors.InternalServer(reason.DatabaseError).WithError(err).WithStack()
+// 		}
+// 	}
+// 	_ = ar.updateSearch(ctx, acceptedAnswerID)
+// 	return nil
+// }
 
 // GetByID
 func (ar *answerRepo) GetByID(ctx context.Context, answerID string) (*entity.Answer, bool, error) {
@@ -359,7 +360,7 @@ func (ar *answerRepo) SearchList(ctx context.Context, search *entity.AnswerSearc
 	case entity.AnswerSearchOrderByVote:
 		session = session.OrderBy("vote_count desc")
 	default:
-		session = session.OrderBy("adopted desc,vote_count desc,created_at asc")
+		session = session.OrderBy("vote_count desc,created_at asc")
 	}
 	if !search.IncludeDeleted {
 		if search.LoginUserID == "" {
@@ -398,7 +399,7 @@ func (ar *answerRepo) GetPersonalAnswerPage(ctx context.Context, req *entity.Per
 	case entity.AnswerSearchOrderByVote:
 		session = session.OrderBy("vote_count desc")
 	default:
-		session = session.OrderBy("adopted desc,vote_count desc,created_at asc")
+		session = session.OrderBy("vote_count desc,created_at asc")
 	}
 	if req.ShowPending {
 		session = session.And("status != ?", entity.AnswerStatusDeleted)

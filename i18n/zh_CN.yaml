@@ -1107,9 +1107,9 @@ ui:
     btn_cancel: 取消
     show_more: "{{count}} 条剩余评论"
     tip_question: >-
-      使用评论提问更多信息或者提出改进意见。避免在评论里回答问题。
+      使用评论提问更多信息或者提出改进意见。避免在评论里回复帖子。
     tip_answer: >-
-      使用评论对回答者进行回复，或者通知回答者你已更新了问题的内容。如果要补充或者完善问题的内容，请在原问题中更改。
+      使用评论对回复者进行回复，或者通知回复者你已更新了帖子的内容。如果要补充或者完善帖子的内容，请在原帖中更改。
     tip_vote: 它给帖子添加了一些有用的内容
   edit_answer:
     title: 编辑回复
@@ -1145,9 +1145,9 @@ ui:
   ask:
     title: 创建帖子
     edit_title: 编辑帖子
-    default_reason: 编辑问题
-    default_first_reason: 创建问题
-    similar_questions: 相似问题
+    default_reason: 编辑帖子
+    default_first_reason: 创建帖子
+    similar_questions: 相似帖子
     form:
       fields:
         revision:
@@ -1340,13 +1340,13 @@ ui:
       turn_on: 开启
       inbox:
         label: 收件箱通知
-        description: 你的提问有新的回答，评论，邀请回答和其他。
+        description: 你的帖子有新的回复，评论，邀请回复和其他。
       all_new_question:
-        label: 所有新问题
-        description: 获取所有新问题的通知。每周最多有50个问题。
+        label: 所有新帖子
+        description: 获取所有新帖子的通知。每周最多有50个帖子。
       all_new_question_for_following_tags:
-        label: 所有关注标签的新问题
-        description: 获取关注的标签下新问题通知。
+        label: 所有关注标签的新帖子
+        description: 获取关注的标签下新帖子通知。
     account:
       heading: 账号
       change_email_btn: 更改邮箱
@@ -1393,7 +1393,7 @@ ui:
     sent_success: 发送成功
   related_question:
     title: 相似
-    answers: 个回答
+    answers: 个回复
   linked_question:
     title: 关联
     description: 帖子关联到
@@ -1401,55 +1401,53 @@ ui:
   invite_to_answer:
     title: 受邀人
     desc: 邀请你认为可能知道答案的人。
-    invite: 邀请回答
+    invite: 邀请回复
     add: 添加人员
     search: 搜索人员
   question_detail:
     action: 操作
     created: 创建于
-    Asked: 提问于
-    asked: 提问于
+    Asked: 发帖于
+    asked: 发帖于
     update: 修改于
     Edited: 编辑于
     edit: 编辑于
     commented: 评论
     Views: 阅读次数
-    Follow: 关注此问题
+    Follow: 关注此帖子
     Following: 已关注
-    follow_tip: 关注此问题以接收通知
-    answered: 回答于
+    follow_tip: 关注此帖子以接收通知
+    answered: 回复于
     closed_in: 关闭于
-    show_exist: 查看类似问题。
+    show_exist: 查看类似帖子。
     useful: 有用的
     question_useful: 它是有用和明确的
     question_un_useful: 它不明确或没用的
-    question_bookmark: 收藏该问题
+    question_bookmark: 收藏该帖子
     answer_useful: 这是有用的
     answer_un_useful: 它是没有用的
     answers:
-      title: 个回答
+      title: 个回复
       score: 评分
       newest: 最新
       oldest: 最旧
-      btn_accept: 采纳
-      btn_accepted: 已被采纳
     write_answer:
-      title: 你的回答
-      edit_answer: 编辑我的回答
-      btn_name: 提交你的回答
-      add_another_answer: 添加另一个回答
-      confirm_title: 继续回答
+      title: 你的回复
+      edit_answer: 编辑我的回复
+      btn_name: 提交你的回复
+      add_another_answer: 添加另一条回复
+      confirm_title: 继续回复
       continue: 继续
       confirm_info: >-
-        <p>你确定要提交一个新的回答吗？</p><p>作为替代，你可以通过编辑来完善和改进之前的回答。</p>
-      empty: 回答内容不能为空。
+        <p>你确定要提交一条新回复吗？</p><p>作为替代，你可以通过编辑来完善和改进之前的回复。</p>
+      empty: 回复内容不能为空。
       characters: 内容长度至少 6 个字符。
       tips:
-        header_1: 感谢你的回答
-        li1_1: 请务必确定在 <strong>回答问题</strong>。提供详细信息并分享你的研究。
+        header_1: 感谢你的回复
+        li1_1: 请务必确定在 <strong>回复帖子</strong>。提供详细信息并分享你的研究。
         li1_2: 用参考资料或个人经历来支持你所做的任何陈述。
         header_2: 但是 <strong>请避免</strong>...
-        li2_1: 请求帮助，寻求澄清，或答复其他答案。
+        li2_1: 请求帮助，寻求澄清，或回复其他人的内容。
     reopen:
       confirm_btn: 重新打开
       title: 重新打开这个帖子
@@ -1469,11 +1467,11 @@ ui:
   delete:
     title: 删除
     question: >-
-      我们不建议 <strong>删除有回答的帖子</strong>。因为这样做会使得后来的读者无法从该帖子中获得帮助。</p><p>如果删除过多有回答的帖子，你的账号将会被禁止提问。你确定要删除吗？
+      我们不建议 <strong>删除有回复的帖子</strong>。因为这样做会使得后来的读者无法从该帖子中获得帮助。</p><p>如果删除过多有回复的帖子，你的账号将会被禁止发帖。你确定要删除吗？
     answer_accepted: >-
-      <p>我们不建议<strong>删除被采纳的回答</strong>。因为这样做会使得后来的读者无法从该帖子中获得帮助。</p>如果删除过多被采纳的回答，你的账号将会被禁止回答任何提问。你确定要删除吗？
+      <p>我们不建议<strong>删除被采纳的回复</strong>。因为这样做会使得后来的读者无法从该帖子中获得帮助。</p>如果删除过多被采纳的回复，你的账号将会被禁止发帖。你确定要删除吗？
     other: 你确定要删除？
-    tip_answer_deleted: 该回答已被删除
+    tip_answer_deleted: 该回复已被删除
     undelete_title: 撤销删除本帖
     undelete_desc: 你确定你要撤销删除吗？
   btns:
@@ -1497,8 +1495,8 @@ ui:
     discard_draft: 丢弃草稿
     pinned: 已置顶
     all: 全部
-    question: 问题
-    answer: 回答
+    question: 帖子
+    answer: 回复
     comment: 评论
     refresh: 刷新
     resend: 重新发送
@@ -1551,10 +1549,10 @@ ui:
       title: 高级搜索提示
       tag: "<1>[tag]</1> 在指定标签中搜索"
       user: "<1>user:username</1> 根据作者搜索"
-      answer: "<1>answers:0</1> 搜索未回答的问题"
+      answer: "<1>answers:0</1> 搜索未回复的帖子"
       score: "<1>score:3</1> 评分 3+ 的帖子"
-      question: "<1>is:question</1> 搜索问题"
-      is_answer: "<1>is:answer</1> 搜索回答"
+      question: "<1>is:question</1> 搜索帖子"
+      is_answer: "<1>is:answer</1> 搜索回复"
     empty: 找不到任何相关的内容。<br /> 请尝试其他关键字，或者减少查找内容的长度。
   share:
     name: 分享
@@ -1586,33 +1584,33 @@ ui:
     following_tags: 已关注的标签
     edit: 编辑
     save: 保存
-    follow_tag_tip: 关注标签来筛选你的问题列表。
-    hot_questions: 热门问题
-    all_questions: 全部问题
-    x_questions: "{{ count }} 个问题"
-    x_answers: "{{ count }} 个回答"
+    follow_tag_tip: 关注标签来筛选你的帖子列表。
+    hot_questions: 热门帖子
+    all_questions: 全部帖子
+    x_questions: "{{ count }} 个帖子"
+    x_answers: "{{ count }} 个回复"
     x_posts: "{{ count }} 个帖子"
-    questions: 问题
-    answers: 回答
+    questions: 帖子
+    answers: 回复
     newest: 最新
     active: 活跃
     hot: 热门
     frequent: 频繁的
     recommend: 推荐
     score: 评分
-    unanswered: 未回答
+    unanswered: 未回复
     modified: 更新于
-    answered: 回答于
-    asked: 提问于
+    answered: 回复于
+    asked: 发帖于
     closed: 已关闭
     follow_a_tag: 关注一个标签
     more: 更多
   personal:
     overview: 概览
-    answers: 回答
-    answer: 回答
-    questions: 问题
-    question: 问题
+    answers: 回复
+    answer: 回复
+    questions: 帖子
+    question: 帖子
     bookmarks: 收藏
     reputation: 声望
     comments: 评论
@@ -1628,21 +1626,21 @@ ui:
     last_login: 上次登录
     about_me: 关于我
     about_me_empty: "// Hello, World!"
-    top_answers: 高分回答
-    top_questions: 高分问题
+    top_answers: 高分回复
+    top_questions: 高分帖子
     stats: 状态
     list_empty: 没有找到相关的内容。<br />试试看其他选项卡？
     content_empty: 未找到帖子。
     accepted: 已采纳
-    answered: 回答于
-    asked: 提问于
+    answered: 回复于
+    asked: 发帖于
     downvoted: 点踩
     mod_short: 版主
     mod_long: 版主
     x_reputation: 声望
     x_votes: 得票
-    x_answers: 个回答
-    x_questions: 个问题
+    x_answers: 个回复
+    x_questions: 个帖子
     recent_badges: 最近的徽章
   install:
     title: 安装
@@ -1758,7 +1756,7 @@ ui:
   counts:
     views: 次浏览
     votes: 个点赞
-    answers: 个回答
+    answers: 个回复
     accepted: 已被采纳
   page_error:
     http_error: HTTP 错误 {{ code }}
@@ -1771,8 +1769,8 @@ ui:
   nav_menus:
     dashboard: 后台管理
     contents: 内容管理
-    questions: 问题
-    answers: 回答
+    questions: 帖子
+    answers: 回复
     users: 用户管理
     badges: 徽章
     flags: 举报管理
@@ -1830,10 +1828,10 @@ ui:
       title: 后台管理
       welcome: 欢迎来到管理后台！
       site_statistics: 站点统计
-      questions: "问题:"
+      questions: "帖子:"
       resolved: "已解决:"
-      unanswered: "未回答:"
-      answers: "回答:"
+      unanswered: "未回复:"
+      answers: "回复:"
       comments: "评论:"
       votes: "投票:"
       users: "用户:"
@@ -1973,7 +1971,7 @@ ui:
         title: 删除此用户
         content: 确定要删除此用户？此操作无法撤销！
         remove: 移除内容
-        label: 删除所有问题、 答案、 评论等
+        label: 删除所有帖子、 回复、 评论等
         text: 如果你只想删除用户账户，请不要选中此项。
       suspend_user:
         title: 挂起此用户
@@ -1981,20 +1979,20 @@ ui:
         label: 用户将被封禁多长时间？
         forever: 永久
     questions:
-      page_title: 问题
+      page_title: 帖子
       unlisted: 已隐藏
       post: 标题
       votes: 得票数
-      answers: 回答数
+      answers: 回复数
       created: 创建于
       status: 状态
       action: 操作
       change: 更改
       pending: 等待处理
       filter:
-        placeholder: "按标题过滤，问题:id"
+        placeholder: "按标题过滤，帖子:id"
     answers:
-      page_title: 回答
+      page_title: 回复
       post: 标题
       votes: 得票数
       created: 创建于
@@ -2002,7 +2000,7 @@ ui:
       action: 操作
       change: 更改
       filter:
-        placeholder: "按标题筛选，答案:id"
+        placeholder: "按标题筛选，回复:id"
     general:
       page_title: 一般
       name:
@@ -2119,24 +2117,24 @@ ui:
     write:
       page_title: 文件
       min_content:
-        label: 最小问题长度
-        text: 最小允许的问题内容长度（字符）。
+        label: 最小帖子长度
+        text: 最小允许的帖子内容长度（字符）。
       restrict_answer:
-        title: 回答编辑
-        label: 每个用户对于每个问题只能有一个回答
-        text: "用户可以使用编辑按钮优化已有的回答"
+        title: 回复设置
+        label: 每个用户对于每个帖子只能有一条回复
+        text: “用户可以使用编辑按钮优化已有的回复”
       min_tags:
-        label: "问题的最少标签数"
-        text: "一个问题所需标签的最小数量。"
+        label: “帖子的最少标签数”
+        text: “一个帖子所需标签的最小数量。”
       recommend_tags:
         label: 推荐标签
-        text: "推荐标签将默认显示在下拉列表中。"
+        text: “推荐标签将默认显示在下拉列表中。”
         msg:
-          contain_reserved: "推荐标签不能包含保留标签"
+          contain_reserved: “推荐标签不能包含保留标签”
       required_tag:
         title: 设置必填标签
-        label: 设置“推荐标签”为必需的标签
-        text: "每个新问题必须至少有一个推荐标签。"
+        label: 设置”推荐标签”为必需的标签
+        text: “每个新帖子必须至少有一个推荐标签。”
       reserved_tags:
         label: 保留标签
         text: "只有版主才能使用保留的标签。"
@@ -2357,12 +2355,12 @@ ui:
   page_review:
     review: 评论
     proposed: 提案
-    question_edit: 问题编辑
-    answer_edit: 回答编辑
+    question_edit: 帖子编辑
+    answer_edit: 回复编辑
     tag_edit: '标签管理: 编辑标签'
     edit_summary: 编辑备注
-    edit_question: 编辑问题
-    edit_answer: 编辑回答
+    edit_question: 编辑帖子
+    edit_answer: 编辑回复
     edit_tag: 编辑标签
     empty: 没有剩余的审核任务。
     approve_revision_tip: 您是否批准此修订？
@@ -2391,8 +2389,8 @@ ui:
     commented: '评论:'
     rollback: 回滚
     edited: 最后编辑于
-    answered: 回答于
-    asked: 提问于
+    answered: 回复于
+    asked: 发帖于
     closed: 关闭
     reopened: 重新开启
     created: 创建于
@@ -2405,7 +2403,7 @@ ui:
     show_votes: "显示投票"
     n_or_a: N/A
     title_for_question: "时间线"
-    title_for_answer: "{{ title }} 的 {{ author }} 回答时间线"
+    title_for_answer: "{{ title }} 的 {{ author }} 回复时间线"
     title_for_tag: "时间线"
     datetime: 日期时间
     type: 类型
@@ -2436,8 +2434,8 @@ ui:
     post_unlist: 这个帖子已经被隐藏
     post_pending: 您的帖子正在等待审核。它将在它获得批准后可见。
     post_closed: 此帖已关闭。
-    answer_deleted: 该回答已被删除.
-    answer_cancel_deleted: 此答案已取消删除。
+    answer_deleted: 该回复已被删除.
+    answer_cancel_deleted: 此回复已取消删除。
     change_user_role: 此用户的角色已被更改。
     user_inactive: 此用户已经处于未激活状态。
     user_normal: 此用户已经是正常的。
@@ -2447,8 +2445,8 @@ ui:
     badge_activated: 此徽章已被激活。
     badge_inactivated: 此徽章已被禁用。
     users_deleted: 这些用户已被删除。
-    posts_deleted: 这些问题已被删除。
-    answers_deleted: 这些答案已被删除。
+    posts_deleted: 这些帖子已被删除。
+    answers_deleted: 这些回复已被删除。
     copy: 复制到剪贴板
     copied: 已复制
     external_content_warning: 外部图像/媒体未显示。
