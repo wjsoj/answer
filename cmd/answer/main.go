@@ -23,7 +23,13 @@ package main
 
 import (
 	answercmd "github.com/apache/answer/cmd"
+	_ "github.com/apache/answer-plugins/captcha-basic"
 	_ "github.com/apache/answer-plugins/connector-basic"
+	_ "github.com/apache/answer-plugins/editor-formula"
+	_ "github.com/apache/answer-plugins/quick-links"
+	_ "github.com/apache/answer-plugins/render-markdown-codehighlight"
+	_ "github.com/apache/answer-plugins/search-meilisearch"
+	_ "github.com/apache/answer-plugins/storage-s3"
 	_ "github.com/wjsoj/answer-plugins/reviewer-glm"
 )
 
