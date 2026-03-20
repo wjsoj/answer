@@ -17,16 +17,16 @@
  * under the License.
  */
 
-import { memo, useState, FC, useEffect } from 'react';
-import { Form, Button, Alert } from 'react-bootstrap';
-import { useTranslation, Trans } from 'react-i18next';
+import { memo, useState, useRef, FC, useEffect } from 'react';
+import { Form, Button } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
 import { marked } from 'marked';
 import classNames from 'classnames';
 
 import { usePromptWithUnload } from '@/hooks';
 import { useCaptchaPlugin } from '@/utils/pluginKit';
-import { Editor, Modal, TextArea } from '@/components';
+import { Editor, TextArea } from '@/components';
 import { FormDataType, PostAnswerReq } from '@/common/interface';
 import { postAnswer } from '@/services';
 import { guard, handleFormError, SaveDraft, storageExpires } from '@/utils';
@@ -62,10 +62,9 @@ const Index: FC<Props> = ({ visible = false, data, callback }) => {
   const [focusType, setFocusType] = useState('');
   const [editorFocusState, setEditorFocusState] = useState(false);
   const [hasDraft, setHasDraft] = useState(false);
-  const [showTips, setShowTips] = useState(data.loggedUserRank < 100);
   const aCaptcha = useCaptchaPlugin('answer');
   const writeInfo = writeSettingStore((state) => state.write);
-  const [editorCanSave, setEditorCanSave] = useState(false);
+  const editorCanSaveRef = useRef(false);
 
   usePromptWithUnload({
     when: Boolean(formData.content.value),
@@ -92,7 +91,7 @@ const Index: FC<Props> = ({ visible = false, data, callback }) => {
       setHasDraft(true);
     }
     setTimeout(() => {
-      setEditorCanSave(true);
+      editorCanSaveRef.current = true;
     }, 100);
   }, []);
 
@@ -209,18 +208,6 @@ const Index: FC<Props> = ({ visible = false, data, callback }) => {
       return;
     }
 
-    if (data?.answered && !showEditor) {
-      Modal.confirm({
-        title: t('confirm_title'),
-        content: t('confirm_info'),
-        confirmText: t('continue'),
-        onConfirm: () => {
-          setShowEditor(true);
-        },
-      });
-      return;
-    }
-
     if (!showEditor) {
       setShowEditor(true);
       return;
@@ -260,61 +247,32 @@ const Index: FC<Props> = ({ visible = false, data, callback }) => {
             </div>
           )}
           {showEditor && (
-            <>
-              <Editor
-                className={classNames(
-                  'form-control p-0',
-                  focusType === 'answer' && 'focus',
-                  formData.content.isInvalid && 'is-invalid',
-                )}
-                value={formData.content.value}
-                autoFocus={editorFocusState}
-                onChange={(val) => {
-                  if (editorCanSave) {
-                    setFormData({
-                      content: {
-                        value: val,
-                        isInvalid: false,
-                        errorMsg: '',
-                      },
-                    });
-                  }
-                }}
-                onFocus={() => {
-                  setFocusType('answer');
-                }}
-                onBlur={() => {
-                  setFocusType('');
-                }}
-              />
-
-              <Alert
-                variant="warning"
-                show={data.loggedUserRank < 100 && showTips}
-                onClose={() => setShowTips(false)}
-                dismissible
-                className="mt-3">
-                <p>{t('tips.header_1')}</p>
-                <ul>
-                  <li>
-                    <Trans
-                      i18nKey="question_detail.write_answer.tips.li1_1"
-                      components={{ strong: <strong /> }}
-                    />
-                  </li>
-                  <li>{t('tips.li1_2')}</li>
-                </ul>
-                <p>
-                  <Trans
-                    i18nKey="question_detail.write_answer.tips.header_2"
-                    components={{ strong: <strong /> }}
-                  />
-                </p>
-                <ul className="mb-0">
-                  <li>{t('tips.li2_1')}</li>
-                </ul>
-              </Alert>
-            </>
+            <Editor
+              className={classNames(
+                'form-control p-0',
+                focusType === 'answer' && 'focus',
+                formData.content.isInvalid && 'is-invalid',
+              )}
+              value={formData.content.value}
+              autoFocus={editorFocusState}
+              onChange={(val) => {
+                if (editorCanSaveRef.current) {
+                  setFormData({
+                    content: {
+                      value: val,
+                      isInvalid: false,
+                      errorMsg: '',
+                    },
+                  });
+                }
+              }}
+              onFocus={() => {
+                setFocusType('answer');
+              }}
+              onBlur={() => {
+                setFocusType('');
+              }}
+            />
           )}
 
           <Form.Control.Feedback type="invalid">
