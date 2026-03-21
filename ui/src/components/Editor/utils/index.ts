@@ -80,6 +80,17 @@ export function htmlRender(el: HTMLElement | null, config?: htmlRenderConfig) {
     }
   });
 
+  // Replace video file links with inline video player
+  const videoExtensions = /\.(mp4|webm|mov|ogg)(\?.*)?$/i;
+  el.querySelectorAll('a').forEach((a) => {
+    if (!videoExtensions.test(a.href)) return;
+    const video = document.createElement('video');
+    video.src = a.href;
+    video.controls = true;
+    video.style.maxWidth = '100%';
+    a.parentNode?.replaceChild(video, a);
+  });
+
   // Add copy button to all pre tags
   el.querySelectorAll('pre').forEach((pre) => {
     // Create copy button
