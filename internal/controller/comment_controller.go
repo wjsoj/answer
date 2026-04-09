@@ -31,6 +31,7 @@ import (
 	"github.com/apache/answer/internal/schema"
 	"github.com/apache/answer/internal/service/action"
 	"github.com/apache/answer/internal/service/comment"
+	"github.com/apache/answer/internal/service/content"
 	"github.com/apache/answer/internal/service/permission"
 	"github.com/apache/answer/internal/service/rank"
 	"github.com/apache/answer/pkg/uid"
@@ -44,6 +45,7 @@ type CommentController struct {
 	rankService         *rank.RankService
 	actionService       *action.CaptchaService
 	rateLimitMiddleware *middleware.RateLimitMiddleware
+	questionService     *content.QuestionService
 }
 
 // NewCommentController new controller
@@ -52,12 +54,14 @@ func NewCommentController(
 	rankService *rank.RankService,
 	actionService *action.CaptchaService,
 	rateLimitMiddleware *middleware.RateLimitMiddleware,
+	questionService *content.QuestionService,
 ) *CommentController {
 	return &CommentController{
 		commentService:      commentService,
 		rankService:         rankService,
 		actionService:       actionService,
 		rateLimitMiddleware: rateLimitMiddleware,
+		questionService:     questionService,
 	}
 }
 
@@ -261,6 +265,13 @@ func (cc *CommentController) GetCommentWithPage(ctx *gin.Context) {
 	req.CanEdit = canList[0]
 	req.CanDelete = canList[1]
 
+	// Check section access for the parent object
+	canAccess, _ := cc.questionService.CanAccessObjectByID(ctx, req.UserID, req.ObjectID)
+	if !canAccess {
+		handler.HandleResponse(ctx, errors.NotFound(reason.QuestionNotFound), nil)
+		return
+	}
+
 	resp, err := cc.commentService.GetCommentWithPage(ctx, req)
 	handler.HandleResponse(ctx, err, resp)
 }
@@ -284,6 +295,23 @@ func (cc *CommentController) GetCommentPersonalWithPage(ctx *gin.Context) {
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
 
 	resp, err := cc.commentService.GetCommentPersonalWithPage(ctx, req)
+	if err == nil && resp != nil {
+		// Filter out comments on private section questions
+		if list, ok := resp.List.([]*schema.GetCommentPersonalWithPageResp); ok {
+			filtered := make([]*schema.GetCommentPersonalWithPageResp, 0, len(list))
+			for _, item := range list {
+				questionID := uid.DeShortID(item.QuestionID)
+				if questionID == "" {
+					continue
+				}
+				canAccess, _ := cc.questionService.CanAccessQuestionByID(ctx, req.UserID, questionID)
+				if canAccess {
+					filtered = append(filtered, item)
+				}
+			}
+			resp.List = filtered
+		}
+	}
 	handler.HandleResponse(ctx, err, resp)
 }
 
@@ -314,5 +342,12 @@ func (cc *CommentController) GetComment(ctx *gin.Context) {
 	req.CanDelete = canList[1]
 
 	resp, err := cc.commentService.GetComment(ctx, req)
+	if err == nil && resp != nil {
+		canAccess, _ := cc.questionService.CanAccessObjectByID(ctx, req.UserID, uid.DeShortID(resp.ObjectID))
+		if !canAccess {
+			handler.HandleResponse(ctx, errors.NotFound(reason.QuestionNotFound), nil)
+			return
+		}
+	}
 	handler.HandleResponse(ctx, err, resp)
 }

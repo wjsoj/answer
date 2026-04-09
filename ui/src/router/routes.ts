@@ -242,6 +242,14 @@ const routes: RouteNode[] = [
             path: 'review',
             page: 'pages/Review',
           },
+          // section management (moderators)
+          {
+            path: 'section-manage',
+            page: 'pages/SectionManage',
+            guard: () => {
+              return guard.logged();
+            },
+          },
           {
             path: '/badges',
             page: 'pages/Badges/index',
@@ -440,6 +448,10 @@ const routes: RouteNode[] = [
           {
             path: 'installed-plugins',
             page: 'pages/Admin/Plugins/Installed',
+          },
+          {
+            path: 'forum-permissions',
+            page: 'pages/Admin/ForumPermissions',
           },
           {
             path: ':slug_name',

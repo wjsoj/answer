@@ -125,12 +125,172 @@ func (c *MCPController) isReadOnlyScope(ctx context.Context) bool {
 	return scope == "read-only"
 }
 
+// MCPForumSectionsHandler returns accessible forum sections
+func (c *MCPController) MCPForumSectionsHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+		userID := c.getUserIDFromContext(ctx)
+		resp, err := c.questionService.GetAccessibleForumSections(ctx, userID)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to get forum sections: %v", err)), nil
+		}
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// MCPUpdateSectionVisibilityHandler updates section visibility
+func (c *MCPController) MCPUpdateSectionVisibilityHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+		args := request.GetArguments()
+		section, _ := args["section"].(string)
+		visibility, _ := args["visibility"].(string)
+		if section == "" || visibility == "" {
+			return mcp.NewToolResultError("section and visibility are required"), nil
+		}
+		req := &schema.ForumSectionVisibilityReq{
+			Section:    section,
+			Visibility: visibility,
+			UserID:     userID,
+		}
+		err := c.questionService.UpdateForumSectionVisibility(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to update visibility: %v", err)), nil
+		}
+		return mcp.NewToolResultText("Section visibility updated successfully"), nil
+	}
+}
+
+// MCPInviteSectionUsersHandler invites users to a section
+func (c *MCPController) MCPInviteSectionUsersHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+		args := request.GetArguments()
+		section, _ := args["section"].(string)
+		roleStr, _ := args["role"].(string)
+		usersRaw, _ := args["users"].([]interface{})
+		users := make([]string, 0, len(usersRaw))
+		for _, u := range usersRaw {
+			if s, ok := u.(string); ok {
+				users = append(users, s)
+			}
+		}
+		if section == "" || roleStr == "" || len(users) == 0 {
+			return mcp.NewToolResultError("section, role, and users are required"), nil
+		}
+		req := &schema.ForumSectionInviteReq{
+			Section:   section,
+			Users:     users,
+			Role:      roleStr,
+			InviterID: userID,
+			IsAdmin:   c.questionService.IsUserAdminOrModerator(ctx, userID),
+		}
+		resp, err := c.questionService.InviteForumSectionUsers(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to invite users: %v", err)), nil
+		}
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
+// MCPRemoveSectionUsersHandler removes users from a section
+func (c *MCPController) MCPRemoveSectionUsersHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		if c.isReadOnlyScope(ctx) {
+			return mcp.NewToolResultError("This operation requires a non read-only API key"), nil
+		}
+		args := request.GetArguments()
+		section, _ := args["section"].(string)
+		roleStr, _ := args["role"].(string)
+		usersRaw, _ := args["users"].([]interface{})
+		users := make([]string, 0, len(usersRaw))
+		for _, u := range usersRaw {
+			if s, ok := u.(string); ok {
+				users = append(users, s)
+			}
+		}
+		if section == "" || roleStr == "" || len(users) == 0 {
+			return mcp.NewToolResultError("section, role, and users are required"), nil
+		}
+		req := &schema.ForumSectionRemoveReq{
+			Section:   section,
+			Users:     users,
+			Role:      roleStr,
+			RemoverID: userID,
+			IsAdmin:   c.questionService.IsUserAdminOrModerator(ctx, userID),
+		}
+		err := c.questionService.RemoveForumSectionUsers(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to remove users: %v", err)), nil
+		}
+		return mcp.NewToolResultText("Users removed successfully"), nil
+	}
+}
+
+// MCPGetSectionPermissionsHandler returns section member/moderator lists
+func (c *MCPController) MCPGetSectionPermissionsHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := c.ensureMCPEnabled(ctx); err != nil {
+			return nil, err
+		}
+		userID := c.getUserIDFromContext(ctx)
+		if userID == "" {
+			return mcp.NewToolResultError("Authentication required"), nil
+		}
+		args := request.GetArguments()
+		section, _ := args["section"].(string)
+		if section == "" {
+			return mcp.NewToolResultError("section is required"), nil
+		}
+		req := &schema.ForumSectionPermissionQueryReq{
+			Section: section,
+			UserID:  userID,
+		}
+		resp, err := c.questionService.GetForumSectionPermissions(ctx, req)
+		if err != nil {
+			return mcp.NewToolResultError(fmt.Sprintf("Failed to get permissions: %v", err)), nil
+		}
+		data, _ := json.Marshal(resp)
+		return mcp.NewToolResultText(string(data)), nil
+	}
+}
+
 func (c *MCPController) MCPQuestionsHandler() func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		if err := c.ensureMCPEnabled(ctx); err != nil {
 			return nil, err
 		}
 		cond := schema.NewMCPSearchCond(request)
+		userID := c.getUserIDFromContext(ctx)
 
 		siteGeneral, err := c.siteInfoService.GetSiteGeneral(ctx)
 		if err != nil {
@@ -138,18 +298,48 @@ func (c *MCPController) MCPQuestionsHandler() func(ctx context.Context, request 
 			return nil, err
 		}
 
+		// If section filter specified, check access first and add as tag filter
+		if cond.Section != "" {
+			canAccess, aErr := c.questionService.CanAccessSectionBySlug(ctx, userID, cond.Section)
+			if aErr != nil || !canAccess {
+				return mcp.NewToolResultText("[]"), nil
+			}
+			// Add section as a tag filter for the search
+			cond.Tags = append(cond.Tags, cond.Section)
+		}
+
 		searchResp, err := c.searchService.Search(ctx, &schema.SearchDTO{
-			Query: cond.ToQueryString() + " is:question",
-			Page:  1,
-			Size:  5,
-			Order: "newest",
+			Query:  cond.ToQueryString() + " is:question",
+			Page:   1,
+			Size:   5,
+			Order:  "newest",
+			UserID: userID,
 		})
 		if err != nil {
 			return nil, err
 		}
-
 		resp := make([]*schema.MCPSearchQuestionInfoResp, 0)
 		for _, question := range searchResp.SearchResults {
+			// Check section access for each question's tags
+			accessible := true
+			for _, tag := range question.Object.Tags {
+				if tag.MainTagSlugName != "" {
+					canAccess, err := c.questionService.CanAccessSectionBySlug(ctx, userID, tag.MainTagSlugName)
+					if err != nil || !canAccess {
+						accessible = false
+						break
+					}
+				} else {
+					canAccess, err := c.questionService.CanAccessSectionBySlug(ctx, userID, tag.SlugName)
+					if err != nil || !canAccess {
+						accessible = false
+						break
+					}
+				}
+			}
+			if !accessible {
+				continue
+			}
 			t := &schema.MCPSearchQuestionInfoResp{
 				QuestionID: question.Object.QuestionID,
 				Title:      question.Object.Title,
@@ -177,10 +367,23 @@ func (c *MCPController) MCPQuestionDetailHandler() func(ctx context.Context, req
 			return nil, err
 		}
 
-		question, err := c.questioncommon.Info(ctx, cond.QuestionID, "")
+		userID := c.getUserIDFromContext(ctx)
+		question, err := c.questioncommon.Info(ctx, cond.QuestionID, userID)
 		if err != nil {
 			log.Errorf("get question failed: %v", err)
 			return mcp.NewToolResultText("No question found."), nil
+		}
+
+		// Check section access via question tags
+		for _, tag := range question.Tags {
+			slug := tag.SlugName
+			if tag.MainTagSlugName != "" {
+				slug = tag.MainTagSlugName
+			}
+			canAccess, aErr := c.questionService.CanAccessSectionBySlug(ctx, userID, slug)
+			if aErr != nil || !canAccess {
+				return mcp.NewToolResultText("No question found."), nil
+			}
 		}
 
 		resp := &schema.MCPSearchQuestionInfoResp{
@@ -205,6 +408,23 @@ func (c *MCPController) MCPAnswersHandler() func(ctx context.Context, request mc
 		if err != nil {
 			log.Errorf("get site general info failed: %v", err)
 			return nil, err
+		}
+
+		// Check section access on the question before returning answers
+		userID := c.getUserIDFromContext(ctx)
+		questionInfo, qErr := c.questioncommon.Info(ctx, cond.QuestionID, userID)
+		if qErr != nil {
+			return mcp.NewToolResultText("No answers found."), nil
+		}
+		for _, tag := range questionInfo.Tags {
+			slug := tag.SlugName
+			if tag.MainTagSlugName != "" {
+				slug = tag.MainTagSlugName
+			}
+			canAccess, aErr := c.questionService.CanAccessSectionBySlug(ctx, userID, slug)
+			if aErr != nil || !canAccess {
+				return mcp.NewToolResultText("No answers found."), nil
+			}
 		}
 
 		answerList, err := c.answerRepo.GetAnswerList(ctx, &entity.Answer{QuestionID: cond.QuestionID})
@@ -517,6 +737,12 @@ func (c *MCPController) MCPCreateAnswerHandler() func(ctx context.Context, reque
 		args := request.GetArguments()
 		questionID, _ := args["question_id"].(string)
 		content, _ := args["content"].(string)
+
+		// Check section access on the question
+		canAccess, _ := c.questionService.CanAccessQuestionByID(ctx, userID, questionID)
+		if !canAccess {
+			return mcp.NewToolResultError("You do not have access to this question's section"), nil
+		}
 
 		req := &schema.AnswerAddReq{
 			QuestionID: questionID,
@@ -1104,6 +1330,18 @@ func (c *MCPController) MCPGetQuestionDetailHandler() func(ctx context.Context, 
 			return mcp.NewToolResultText("No question found."), nil
 		}
 
+		// Check section access via question tags
+		for _, tag := range question.Tags {
+			slug := tag.SlugName
+			if tag.MainTagSlugName != "" {
+				slug = tag.MainTagSlugName
+			}
+			canAccess, aErr := c.questionService.CanAccessSectionBySlug(ctx, userID, slug)
+			if aErr != nil || !canAccess {
+				return mcp.NewToolResultText("No question found."), nil
+			}
+		}
+
 		resp := map[string]interface{}{
 			"question_id":       question.ID,
 			"title":             question.Title,
@@ -1158,8 +1396,15 @@ func (c *MCPController) MCPGetAnswerDetailHandler() func(ctx context.Context, re
 			return mcp.NewToolResultText("Answer not found."), nil
 		}
 
+		// Check section access on the parent question
+		userID := c.getUserIDFromContext(ctx)
+		canAccess, _ := c.questionService.CanAccessQuestionByID(ctx, userID, answer.QuestionID)
+		if !canAccess {
+			return mcp.NewToolResultText("Answer not found."), nil
+		}
+
 		// Get question title via questioncommon.Info
-		questionInfo, err := c.questioncommon.Info(ctx, answer.QuestionID, "")
+		questionInfo, err := c.questioncommon.Info(ctx, answer.QuestionID, userID)
 		if err != nil {
 			log.Errorf("get question info failed: %v", err)
 		}

@@ -36,18 +36,21 @@ import (
 
 // SearchController tag controller
 type SearchController struct {
-	searchService *content.SearchService
-	actionService *action.CaptchaService
+	searchService   *content.SearchService
+	actionService   *action.CaptchaService
+	questionService *content.QuestionService
 }
 
 // NewSearchController new controller
 func NewSearchController(
 	searchService *content.SearchService,
 	actionService *action.CaptchaService,
+	questionService *content.QuestionService,
 ) *SearchController {
 	return &SearchController{
-		searchService: searchService,
-		actionService: actionService,
+		searchService:   searchService,
+		actionService:   actionService,
+		questionService: questionService,
 	}
 }
 
@@ -89,6 +92,29 @@ func (sc *SearchController) Search(ctx *gin.Context) {
 		sc.actionService.ActionRecordAdd(ctx, entity.CaptchaActionSearch, unit)
 	}
 	resp, err := sc.searchService.Search(ctx, &dto)
+	if err == nil && resp != nil {
+		// Filter search results by section access
+		filtered := make([]*schema.SearchResult, 0, len(resp.SearchResults))
+		for _, result := range resp.SearchResults {
+			accessible := true
+			for _, tag := range result.Object.Tags {
+				slug := tag.SlugName
+				if tag.MainTagSlugName != "" {
+					slug = tag.MainTagSlugName
+				}
+				canAccess, aErr := sc.questionService.CanAccessSectionBySlug(ctx, dto.UserID, slug)
+				if aErr != nil || !canAccess {
+					accessible = false
+					break
+				}
+			}
+			if accessible {
+				filtered = append(filtered, result)
+			}
+		}
+		resp.SearchResults = filtered
+		resp.Total = int64(len(filtered))
+	}
 	handler.HandleResponse(ctx, err, resp)
 }
 

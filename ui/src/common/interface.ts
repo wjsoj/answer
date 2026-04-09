@@ -308,6 +308,20 @@ export interface QueryQuestionsReq extends Paging {
   order: QuestionOrderBy;
   tag?: string;
   in_days?: number;
+  section?: string;
+}
+
+export interface ForumSectionItem {
+  tag_id: string;
+  slug_name: string;
+  display_name: string;
+  visibility: 'public' | 'private';
+  can_manage: boolean;
+}
+
+export interface ForumSectionPermissionItem {
+  members: string[];
+  moderators: string[];
 }
 
 export type AdminQuestionStatus =

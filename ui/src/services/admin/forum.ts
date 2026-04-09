@@ -17,16 +17,33 @@
  * under the License.
  */
 
-export * from './answer';
-export * from './flag';
-export * from './question';
-export * from './settings';
-export * from './users';
-export * from './dashboard';
-export * from './plugins';
-export * from './badges';
-export * from './ai';
-export * from './tags';
-export * from './apikeys';
-export * from './mcp';
-export * from './forum';
+import request from '@/utils/request';
+
+export const updateForumSectionVisibility = (params: {
+  section: string;
+  visibility: string;
+}) => {
+  return request.put('/answer/api/v1/forum/section/visibility', params);
+};
+
+export const inviteForumSectionUsers = (params: {
+  section: string;
+  users: string[];
+  role: string;
+}) => {
+  return request.put('/answer/api/v1/forum/section/invite', params);
+};
+
+export const getForumSectionPermissions = (section: string) => {
+  return request.get(
+    `/answer/api/v1/forum/section/permissions?section=${encodeURIComponent(section)}`,
+  );
+};
+
+export const removeForumSectionUsers = (params: {
+  section: string;
+  users: string[];
+  role: string;
+}) => {
+  return request.put('/answer/api/v1/forum/section/remove', params);
+};

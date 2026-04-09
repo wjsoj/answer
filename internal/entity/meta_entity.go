@@ -27,6 +27,11 @@ const (
 	AnswerEditSummaryKey   = "answer.edit.summary"
 	TagEditSummaryKey      = "tag.edit.summary"
 	ObjectReactSummaryKey  = "object.react.summary"
+
+	// Forum section metadata keys
+	ForumSectionVisibility  = "forum.section.visibility"
+	ForumSectionMembers     = "forum.section.members"
+	ForumSectionModerators  = "forum.section.moderators"
 )
 
 // Meta meta

@@ -89,6 +89,11 @@ func (ms *MetaCommonService) GetMetaByObjectIdAndKey(ctx context.Context, object
 	return meta, nil
 }
 
+// GetMetaByObjectIdAndKeyRaw get meta one, returns exist flag instead of error when not found
+func (ms *MetaCommonService) GetMetaByObjectIdAndKeyRaw(ctx context.Context, objectID, key string) (meta *entity.Meta, exist bool, err error) {
+	return ms.metaRepo.GetMetaByObjectIdAndKey(ctx, objectID, key)
+}
+
 // GetMetaList get meta list all
 func (ms *MetaCommonService) GetMetaList(ctx context.Context, objID string) (metas []*entity.Meta, err error) {
 	metas, err = ms.metaRepo.GetMetaList(ctx, &entity.Meta{ObjectID: objID})

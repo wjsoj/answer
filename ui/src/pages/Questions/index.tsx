@@ -47,15 +47,20 @@ const Questions: FC = () => {
   const curPage = Number(urlSearchParams.get('page')) || 1;
   const curOrder = (urlSearchParams.get('order') ||
     QUESTION_ORDER_KEYS[0]) as Type.QuestionOrderBy;
+  const curSection = urlSearchParams.get('section') || '';
+
   const reqParams: Type.QueryQuestionsReq = {
     page_size: 20,
     page: curPage,
     order: curOrder as Type.QuestionOrderBy,
+    ...(curSection ? { section: curSection } : {}),
   };
+
   const { data: listData, isLoading: listLoading } =
     curOrder === 'recommend'
       ? useQuestionRecommendList(reqParams)
       : useQuestionList(reqParams);
+
   const isIndexPage = useMatch('/');
   let pageTitle = t('questions', { keyPrefix: 'page_title' });
   let slogan = '';
@@ -67,6 +72,7 @@ const Questions: FC = () => {
   const { login: loginSetting } = loginSettingStore();
 
   usePageTags({ title: pageTitle, subtitle: slogan });
+
   return (
     <Row className="pt-4 mb-5">
       <Col className="page-main flex-auto overflow-x-hidden">

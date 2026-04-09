@@ -26,6 +26,7 @@ import (
 
 	"github.com/apache/answer/internal/base/constant"
 	"github.com/apache/answer/internal/schema"
+	"github.com/apache/answer/pkg/uid"
 	"github.com/gin-gonic/gin"
 	"github.com/segmentfault/pacman/log"
 )
@@ -55,6 +56,8 @@ func (t *TemplateRenderController) Sitemap(ctx *gin.Context) {
 		log.Errorf("get sitemap questions failed: %s", err)
 		return
 	}
+	// Filter out private section questions from sitemap (anonymous access)
+	questions = t.filterSitemapBySection(ctx, questions)
 
 	ctx.Header("Content-Type", "application/xml")
 	if len(questions) < constant.SitemapMaxSize {
@@ -128,6 +131,8 @@ func (t *TemplateRenderController) SitemapPage(ctx *gin.Context, page int) error
 		log.Errorf("get sitemap questions failed: %s", err)
 		return err
 	}
+	// Filter out private section questions from sitemap (anonymous access)
+	questions = t.filterSitemapBySection(ctx, questions)
 	ctx.Header("Content-Type", "application/xml")
 	ctx.HTML(
 		http.StatusOK, "sitemap.xml", gin.H{
@@ -139,4 +144,17 @@ func (t *TemplateRenderController) SitemapPage(ctx *gin.Context, page int) error
 		},
 	)
 	return nil
+}
+
+// filterSitemapBySection removes private section questions from sitemap results.
+func (t *TemplateRenderController) filterSitemapBySection(ctx *gin.Context, questions []*schema.SiteMapQuestionInfo) []*schema.SiteMapQuestionInfo {
+	filtered := make([]*schema.SiteMapQuestionInfo, 0, len(questions))
+	for _, q := range questions {
+		// Check with empty userID (anonymous/public access)
+		canAccess, _ := t.questionService.CanAccessQuestionByID(ctx, "", uid.DeShortID(q.ID))
+		if canAccess {
+			filtered = append(filtered, q)
+		}
+	}
+	return filtered
 }

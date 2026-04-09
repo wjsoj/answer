@@ -43,6 +43,7 @@ import (
 // AnswerController answer controller
 type AnswerController struct {
 	answerService         *content.AnswerService
+	questionService       *content.QuestionService
 	rankService           *rank.RankService
 	actionService         *action.CaptchaService
 	siteInfoCommonService siteinfo_common.SiteInfoCommonService
@@ -52,6 +53,7 @@ type AnswerController struct {
 // NewAnswerController new controller
 func NewAnswerController(
 	answerService *content.AnswerService,
+	questionService *content.QuestionService,
 	rankService *rank.RankService,
 	actionService *action.CaptchaService,
 	siteInfoCommonService siteinfo_common.SiteInfoCommonService,
@@ -59,6 +61,7 @@ func NewAnswerController(
 ) *AnswerController {
 	return &AnswerController{
 		answerService:         answerService,
+		questionService:       questionService,
 		rankService:           rankService,
 		actionService:         actionService,
 		siteInfoCommonService: siteInfoCommonService,
@@ -173,6 +176,14 @@ func (ac *AnswerController) GetAnswerInfo(ctx *gin.Context) {
 	if !has {
 		handler.HandleResponse(ctx, fmt.Errorf(""), gin.H{})
 		return
+	}
+	// Check section access on the parent question
+	if questionInfo != nil {
+		canAccess, _ := ac.questionService.CanAccessQuestionByID(ctx, userID, uid.DeShortID(questionInfo.ID))
+		if !canAccess {
+			handler.HandleResponse(ctx, errors.NotFound(reason.QuestionNotFound), gin.H{})
+			return
+		}
 	}
 	handler.HandleResponse(ctx, err, &schema.GetAnswerInfoResp{
 		Info:     info,
@@ -378,6 +389,13 @@ func (ac *AnswerController) AnswerList(ctx *gin.Context) {
 
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
 	req.QuestionID = uid.DeShortID(req.QuestionID)
+
+	// Check section access on the question
+	canAccess, _ := ac.questionService.CanAccessQuestionByID(ctx, req.UserID, req.QuestionID)
+	if !canAccess {
+		handler.HandleResponse(ctx, errors.NotFound(reason.QuestionNotFound), nil)
+		return
+	}
 
 	canList, err := ac.rankService.CheckOperationPermissions(ctx, req.UserID, []string{
 		permission.AnswerEdit,

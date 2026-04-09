@@ -465,6 +465,13 @@ backend:
                 other: 无效的 URL。
             status_invalid:
                 other: 无效状态。
+        forum:
+            section_not_found:
+                other: 论坛板块未找到。
+            section_access_denied:
+                other: 您没有权限访问该论坛板块。
+            section_permission_denied:
+                other: 您没有权限管理该论坛板块。
         config:
             read_config_failed:
                 other: 读取配置失败
@@ -1371,6 +1378,28 @@ ui:
                         label: 用户名
                         msg_range: 用户名长度必须为 2-30 个字符。
             title: 编辑资料
+        forum_permissions:
+            title: 论坛板块
+            section: 板块
+            visibility: 可见性
+            public: 公开
+            private: 私密
+            members: 成员
+            moderators: 版主
+            invite_users: 邀请用户
+            invite_placeholder: "输入用户名，用逗号或换行分隔"
+            search_user_placeholder: "搜索用户名..."
+            invite_as_member: 邀请为成员
+            invite_as_moderator: 邀请为版主
+            remove: 移除
+            save: 保存
+            invite: 邀请
+            no_members: 暂无成员
+            no_moderators: 暂无版主
+            skipped_users: 以下用户未找到，已跳过
+            visibility_updated: 可见性更新成功
+            users_invited: 用户邀请成功
+            users_removed: 用户移除成功
         flags:
             action: 操作
             completed: 已完成
@@ -2039,6 +2068,7 @@ ui:
             profile: 用户主页
             question: 帖子
             review: 审查
+            section_manage: 板块管理
             setting: 账号设置
             tag: 标签
             user: 用户
@@ -2239,6 +2269,7 @@ ui:
         dashboard: 后台管理
         files: 文件
         flags: 举报管理
+        forum_permissions: 论坛板块
         general: 一般
         installed_plugins: 已安装插件
         intelligence: 智力
@@ -2426,6 +2457,9 @@ ui:
     question:
         active: 活跃
         all_questions: 全部帖子
+        forum_sections: 论坛板块
+        all_sections: 全部板块
+        private_label: "（私密）"
         answered: 回复于
         answers: 回复
         asked: 发帖于
@@ -2532,6 +2566,23 @@ ui:
         review_answer_title: 审查回复
         review_comment_title: 审查评论
         review_question_title: 审查帖子
+    section_manage:
+        title: 板块管理
+        section: 板块
+        visibility: 可见性
+        public: 公开
+        private: 私密
+        members: 成员
+        moderators: 版主
+        invite_users: 邀请用户
+        search_user_placeholder: "搜索用户名..."
+        invite_as_member: 邀请为成员
+        invite_as_moderator: 邀请为版主
+        invite: 邀请
+        no_members: 暂无成员
+        no_moderators: 暂无版主
+        skipped_users: 以下用户未找到，已跳过
+        no_manageable_sections: 你没有可管理的板块。
     search:
         counts: '{{count}} 个结果'
         counts_loading: '... 个结果'

@@ -64,6 +64,13 @@ func (a *AnswerAPIRouter) RegisterMCPRouter(r *gin.RouterGroup) {
 	s.AddTool(mcp_tools.NewGetAnswerDetailTool(), a.mcpController.MCPGetAnswerDetailHandler())
 	s.AddTool(mcp_tools.NewReportContentTool(), a.mcpController.MCPReportContentHandler())
 
+	// Register forum section tools
+	s.AddTool(mcp_tools.NewForumSectionsTool(), a.mcpController.MCPForumSectionsHandler())
+	s.AddTool(mcp_tools.NewUpdateSectionVisibilityTool(), a.mcpController.MCPUpdateSectionVisibilityHandler())
+	s.AddTool(mcp_tools.NewInviteSectionUsersTool(), a.mcpController.MCPInviteSectionUsersHandler())
+	s.AddTool(mcp_tools.NewRemoveSectionUsersTool(), a.mcpController.MCPRemoveSectionUsersHandler())
+	s.AddTool(mcp_tools.NewGetSectionPermissionsTool(), a.mcpController.MCPGetSectionPermissionsHandler())
+
 	// Use Streamable HTTP transport
 	httpServer := server.NewStreamableHTTPServer(s,
 		server.WithEndpointPath("/answer/api/v1/mcp"),

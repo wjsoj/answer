@@ -54,12 +54,17 @@ var (
 		NewGetQuestionDetailTool(),
 		NewGetAnswerDetailTool(),
 		NewReportContentTool(),
+		NewForumSectionsTool(),
+		NewUpdateSectionVisibilityTool(),
+		NewInviteSectionUsersTool(),
+		NewRemoveSectionUsersTool(),
+		NewGetSectionPermissionsTool(),
 	}
 )
 
 func NewQuestionsTool() mcp.Tool {
 	listFilesTool := mcp.NewTool("get_questions",
-		mcp.WithDescription("Searching for questions that already existed in the system. After the search, you can use the get_answers_by_question_id tool to get answers for the questions."),
+		mcp.WithDescription("Searching for questions that already existed in the system. After the search, you can use the get_answers_by_question_id tool to get answers for the questions. Use get_forum_sections to discover available sections first."),
 		mcp.WithString(schema.MCPSearchCondKeyword,
 			mcp.Description("Keyword to search for questions. Multiple keywords separated by spaces"),
 		),
@@ -71,6 +76,9 @@ func NewQuestionsTool() mcp.Tool {
 		),
 		mcp.WithString(schema.MCPSearchCondScore,
 			mcp.Description("Minimum score that the question must have"),
+		),
+		mcp.WithString(schema.MCPSearchCondSection,
+			mcp.Description("Filter by forum section slug name. Use get_forum_sections to discover available sections."),
 		),
 	)
 	return listFilesTool
@@ -321,6 +329,45 @@ func NewGetAnswerDetailTool() mcp.Tool {
 		mcp.WithString(schema.MCPSearchCondAnswerID, mcp.Required(),
 			mcp.Description("The ID of the answer"),
 		),
+	)
+}
+
+func NewForumSectionsTool() mcp.Tool {
+	return mcp.NewTool("get_forum_sections",
+		mcp.WithDescription("List all forum sections (boards) that you have access to. Returns section names, slugs, visibility status, and whether you can manage each section. Use section slugs with get_questions to filter questions by section."),
+	)
+}
+
+func NewUpdateSectionVisibilityTool() mcp.Tool {
+	return mcp.NewTool("update_section_visibility",
+		mcp.WithDescription("Update the visibility of a forum section. Requires section moderator or admin permissions. Requires authentication via API key."),
+		mcp.WithString("section", mcp.Required(), mcp.Description("Section slug name")),
+		mcp.WithString("visibility", mcp.Required(), mcp.Description("New visibility: 'public' or 'private'")),
+	)
+}
+
+func NewInviteSectionUsersTool() mcp.Tool {
+	return mcp.NewTool("invite_section_users",
+		mcp.WithDescription("Invite users to a forum section as member or moderator. Moderators can invite members; only admins can invite moderators. Requires authentication via API key."),
+		mcp.WithString("section", mcp.Required(), mcp.Description("Section slug name")),
+		mcp.WithArray("users", mcp.Required(), mcp.Description("Usernames to invite"), mcp.WithStringItems()),
+		mcp.WithString("role", mcp.Required(), mcp.Description("Role to assign: 'member' or 'moderator'")),
+	)
+}
+
+func NewRemoveSectionUsersTool() mcp.Tool {
+	return mcp.NewTool("remove_section_users",
+		mcp.WithDescription("Remove users from a forum section role. Moderators can remove members; only admins can remove moderators. Requires authentication via API key."),
+		mcp.WithString("section", mcp.Required(), mcp.Description("Section slug name")),
+		mcp.WithArray("users", mcp.Required(), mcp.Description("Usernames to remove"), mcp.WithStringItems()),
+		mcp.WithString("role", mcp.Required(), mcp.Description("Role to remove from: 'member' or 'moderator'")),
+	)
+}
+
+func NewGetSectionPermissionsTool() mcp.Tool {
+	return mcp.NewTool("get_section_permissions",
+		mcp.WithDescription("Get the member and moderator lists of a forum section. Requires section moderator or admin permissions. Requires authentication via API key."),
+		mcp.WithString("section", mcp.Required(), mcp.Description("Section slug name")),
 	)
 }
 

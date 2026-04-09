@@ -37,9 +37,10 @@ import (
 
 // VoteController activity controller
 type VoteController struct {
-	VoteService   *content.VoteService
-	rankService   *rank.RankService
-	actionService *action.CaptchaService
+	VoteService     *content.VoteService
+	rankService     *rank.RankService
+	actionService   *action.CaptchaService
+	questionService *content.QuestionService
 }
 
 // NewVoteController new controller
@@ -47,11 +48,13 @@ func NewVoteController(
 	voteService *content.VoteService,
 	rankService *rank.RankService,
 	actionService *action.CaptchaService,
+	questionService *content.QuestionService,
 ) *VoteController {
 	return &VoteController{
-		VoteService:   voteService,
-		rankService:   rankService,
-		actionService: actionService,
+		VoteService:     voteService,
+		rankService:     rankService,
+		actionService:   actionService,
+		questionService: questionService,
 	}
 }
 
@@ -182,5 +185,23 @@ func (vc *VoteController) UserVotes(ctx *gin.Context) {
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
 
 	resp, err := vc.VoteService.ListUserVotes(ctx, req)
+	if err == nil && resp != nil {
+		// Filter out votes on private section questions
+		if list, ok := resp.List.([]*schema.GetVoteWithPageResp); ok {
+			filtered := make([]*schema.GetVoteWithPageResp, 0, len(list))
+			for _, item := range list {
+				questionID := uid.DeShortID(item.QuestionID)
+				if questionID == "" {
+					filtered = append(filtered, item)
+					continue
+				}
+				canAccess, _ := vc.questionService.CanAccessQuestionByID(ctx, req.UserID, questionID)
+				if canAccess {
+					filtered = append(filtered, item)
+				}
+			}
+			resp.List = filtered
+		}
+	}
 	handler.HandleResponse(ctx, err, resp)
 }

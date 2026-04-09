@@ -1099,6 +1099,14 @@ func (qs *QuestionService) GetQuestion(ctx context.Context, questionID, userID s
 	if err != nil {
 		return
 	}
+	// Check section access before returning question detail
+	canAccess, accessErr := qs.CanAccessQuestionByID(ctx, userID, uid.DeShortID(questionID))
+	if accessErr != nil {
+		return nil, accessErr
+	}
+	if !canAccess {
+		return nil, errors.NotFound(reason.QuestionNotFound)
+	}
 	// If the question is deleted or pending, only the administrator and the author can view it
 	if (question.Status == entity.QuestionStatusDeleted ||
 		question.Status == entity.QuestionStatusPending) && !per.CanReopen && question.UserID != userID {
@@ -1255,6 +1263,11 @@ func (qs *QuestionService) PersonalAnswerPage(ctx context.Context, req *schema.P
 		} else {
 			continue
 		}
+		// Check section access for the question
+		canAccess, _ := qs.CanAccessQuestionByID(ctx, req.LoginUserID, uid.DeShortID(item.QuestionID))
+		if !canAccess {
+			continue
+		}
 		info := &schema.UserAnswerInfo{}
 		_ = copier.Copy(info, item)
 		info.AnswerID = item.ID
@@ -1290,11 +1303,17 @@ func (qs *QuestionService) PersonalCollectionPage(ctx context.Context, req *sche
 		return nil, err
 	}
 	for _, id := range questionIDs {
+		rawID := id
 		if handler.GetEnableShortID(ctx) {
 			id = uid.EnShortID(id)
 		}
 		_, ok := questionMaps[id]
 		if ok {
+			// Check section access for the question
+			canAccess, _ := qs.CanAccessQuestionByID(ctx, req.UserID, rawID)
+			if !canAccess {
+				continue
+			}
 			questionMaps[id].LastAnsweredUserInfo = nil
 			questionMaps[id].UpdateUserInfo = nil
 			questionMaps[id].Content = ""
@@ -1365,6 +1384,11 @@ func (qs *QuestionService) SearchUserTopList(ctx context.Context, userName strin
 	}
 
 	for _, item := range answerlist {
+		// Check section access for the answer's parent question
+		canAccess, _ := qs.CanAccessQuestionByID(ctx, loginUserID, uid.DeShortID(item.QuestionID))
+		if !canAccess {
+			continue
+		}
 		info := &schema.UserAnswerInfo{}
 		_ = copier.Copy(info, item)
 		info.AnswerID = item.ID
@@ -1377,7 +1401,7 @@ func (qs *QuestionService) SearchUserTopList(ctx context.Context, userName strin
 }
 
 // GetQuestionsByTitle get questions by title
-func (qs *QuestionService) GetQuestionsByTitle(ctx context.Context, title string) (
+func (qs *QuestionService) GetQuestionsByTitle(ctx context.Context, title string, userID string) (
 	resp []*schema.QuestionBaseInfo, err error) {
 	resp = make([]*schema.QuestionBaseInfo, 0)
 	if len(title) == 0 {
@@ -1420,6 +1444,11 @@ func (qs *QuestionService) GetQuestionsByTitle(ctx context.Context, title string
 		}
 	}
 	for _, question := range questions {
+		// Check section access
+		canAccess, _ := qs.CanAccessQuestionByID(ctx, userID, question.ID)
+		if !canAccess {
+			continue
+		}
 		item := &schema.QuestionBaseInfo{}
 		item.ID = question.ID
 		item.Title = question.Title
@@ -1487,8 +1516,34 @@ func (qs *QuestionService) GetQuestionPage(ctx context.Context, req *schema.Ques
 			showHidden = userRole == role.RoleAdminID || userRole == role.RoleModeratorID
 		}
 	}
-	// query by tag condition
+	// query by section condition: filter by section tag and its synonym tags
 	var tagIDs = make([]string, 0)
+	if len(req.Section) > 0 {
+		// Check section access
+		canAccess, err := qs.CanAccessSectionBySlug(ctx, req.LoginUserID, req.Section)
+		if err != nil {
+			return nil, 0, err
+		}
+		if !canAccess {
+			return questions, 0, nil
+		}
+		sectionTag, exist, err := qs.tagCommon.GetTagBySlugName(ctx, strings.ToLower(req.Section))
+		if err != nil {
+			return nil, 0, err
+		}
+		if exist {
+			synTagIds, err := qs.tagCommon.GetTagIDsByMainTagID(ctx, sectionTag.ID)
+			if err != nil {
+				return nil, 0, err
+			}
+			tagIDs = append(tagIDs, synTagIds...)
+			tagIDs = append(tagIDs, sectionTag.ID)
+		} else {
+			return questions, 0, nil
+		}
+	}
+
+	// query by tag condition
 	if len(req.Tag) > 0 {
 		tagInfo, exist, err := qs.tagCommon.GetTagBySlugName(ctx, strings.ToLower(req.Tag))
 		if err != nil {
@@ -1522,8 +1577,14 @@ func (qs *QuestionService) GetQuestionPage(ctx context.Context, req *schema.Ques
 		req.InDays = schema.HotInDays
 	}
 
+	// When no specific section is requested, exclude private sections the user can't access
+	var excludeTagIDs []string
+	if len(req.Section) == 0 {
+		excludeTagIDs = qs.getInaccessibleSectionTagIDs(ctx, req.LoginUserID)
+	}
+
 	questionList, total, err := qs.questionRepo.GetQuestionPage(ctx, req.Page, req.PageSize,
-		tagIDs, req.UserIDBeSearched, req.OrderCond, req.InDays, showHidden, req.ShowPending)
+		tagIDs, excludeTagIDs, req.UserIDBeSearched, req.OrderCond, req.InDays, showHidden, req.ShowPending)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -1571,7 +1632,11 @@ func (qs *QuestionService) GetRecommendQuestionPage(ctx context.Context, req *sc
 	if err != nil {
 		return nil, 0, err
 	}
-
+	// Filter by section access
+	questions = qs.FilterQuestionsBySectionAccess(ctx, req.LoginUserID, questions)
+	if int64(len(questions)) < total {
+		total = int64(len(questions))
+	}
 	return questions, total, nil
 }
 

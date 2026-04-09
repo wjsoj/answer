@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-ARG REGISTRY=docker.xuanyuan.run
-FROM ${REGISTRY}/golang:1.24-alpine AS golang-builder
+ARG REGISTRY
+FROM ${REGISTRY:+${REGISTRY}/}golang:1.24-alpine AS golang-builder
 LABEL maintainer="linkinstar@apache.org"
 
 ARG GOPROXY
@@ -30,6 +30,7 @@ ENV ANSWER_MODULE=${BUILD_DIR}
 
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS="bindata timetzdata $TAGS"
+ENV CGO_ENABLED=0
 ARG CGO_EXTRA_CFLAGS
 
 # Install system tools (cached as long as packages don't change)
@@ -42,7 +43,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
 WORKDIR ${BUILD_DIR}
 
 # Copy only files needed for pnpm install — changing Go source won't bust this layer
-COPY ui/package.json ui/pnpm-lock.yaml ui/
+COPY ui/package.json ui/pnpm-lock.yaml ui/pnpm-workspace.yaml ui/
 COPY ui/scripts/ ui/scripts/
 COPY ui/src/plugins/ ui/src/plugins/
 
@@ -71,14 +72,17 @@ RUN --mount=type=cache,target=/root/.pnpm-store \
 RUN chmod 755 answer
 RUN find ui/src/plugins -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    /bin/bash script/build_plugin.sh
+    --mount=type=cache,target=/root/.pnpm-store \
+    pnpm config set store-dir /root/.pnpm-store \
+    && /bin/bash script/build_plugin.sh \
+    && echo "Binary size after plugin build:" && ls -la answer
 RUN cp answer /usr/bin/answer
 
 RUN mkdir -p /data/uploads && chmod 777 /data/uploads \
     && mkdir -p /data/i18n && cp -r i18n/*.yaml /data/i18n
 
-ARG REGISTRY=docker.xuanyuan.run
-FROM ${REGISTRY}/alpine
+ARG REGISTRY
+FROM ${REGISTRY:+${REGISTRY}/}alpine
 LABEL maintainer="linkinstar@apache.org"
 
 ARG TIMEZONE

@@ -39,16 +39,19 @@ import (
 type RevisionController struct {
 	revisionListService *content.RevisionService
 	rankService         *rank.RankService
+	questionService     *content.QuestionService
 }
 
 // NewRevisionController new controller
 func NewRevisionController(
 	revisionListService *content.RevisionService,
 	rankService *rank.RankService,
+	questionService *content.QuestionService,
 ) *RevisionController {
 	return &RevisionController{
 		revisionListService: revisionListService,
 		rankService:         rankService,
+		questionService:     questionService,
 	}
 }
 
@@ -67,10 +70,19 @@ func (rc *RevisionController) GetRevisionList(ctx *gin.Context) {
 		return
 	}
 	objectID = uid.DeShortID(objectID)
+
+	// Check section access for the object
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	canAccess, _ := rc.questionService.CanAccessObjectByID(ctx, userID, objectID)
+	if !canAccess {
+		handler.HandleResponse(ctx, errors.NotFound(reason.ObjectNotFound), nil)
+		return
+	}
+
 	req := &schema.GetRevisionListReq{
 		ObjectID: objectID,
 		IsAdmin:  middleware.GetUserIsAdminModerator(ctx),
-		UserID:   middleware.GetLoginUserIDFromContext(ctx),
+		UserID:   userID,
 	}
 
 	resp, err := rc.revisionListService.GetRevisionList(ctx, req)

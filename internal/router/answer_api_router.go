@@ -201,6 +201,9 @@ func (a *AnswerAPIRouter) RegisterUnAuthAnswerAPIRouter(r *gin.RouterGroup) {
 	r.GET("/tags", a.tagController.GetTagsBySlugName)
 	r.GET("/tag/synonyms", a.tagController.GetTagSynonyms)
 
+	// forum sections
+	r.GET("/forum/sections", a.questionController.ForumSections)
+
 	// search
 	r.GET("/search", a.searchController.Search)
 	r.GET("/search/desc", a.searchController.SearchDesc)
@@ -322,6 +325,12 @@ func (a *AnswerAPIRouter) RegisterAnswerAPIRouter(r *gin.RouterGroup) {
 	r.GET("/user/plugin/configs", a.userPluginController.GetUserPluginList)
 	r.GET("/user/plugin/config", a.userPluginController.GetUserPluginConfig)
 	r.PUT("/user/plugin/config", a.userPluginController.UpdatePluginUserConfig)
+
+	// forum section management
+	r.GET("/forum/section/permissions", a.questionController.ForumSectionPermissions)
+	r.PUT("/forum/section/visibility", a.questionController.UpdateForumSectionVisibility)
+	r.PUT("/forum/section/invite", a.questionController.InviteForumSectionUsers)
+	r.PUT("/forum/section/remove", a.questionController.RemoveForumSectionUsers)
 
 	// meta
 	r.PUT("/meta/reaction", a.metaController.AddOrUpdateReaction)

@@ -33,6 +33,7 @@ do
 done
 
 echo "cmd is "$cmd
+echo "TAGS=${TAGS}"
 $cmd
 if [ ! -f "./new_answer" ]; then
   echo "new_answer is not exist build failed"

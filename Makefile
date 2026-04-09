@@ -19,16 +19,15 @@ clean:
 ui:
 	@cd ui && pnpm build && cd -
 
-REGISTRY ?= docker.xuanyuan.run
-BUILDKIT_REGISTRY ?= docker.xuanyuan.run
-BUILDX_BUILDER ?= cn-builder
+BUILDX_BUILDER ?= multiarch-builder
 
-# Ensure a buildx builder exists that pulls BuildKit itself from the mirror
+# Ensure a multi-arch buildx builder exists
 .PHONY: docker-builder
 docker-builder:
 	@docker buildx inspect $(BUILDX_BUILDER) > /dev/null 2>&1 || \
 		docker buildx create --name $(BUILDX_BUILDER) \
-			--driver-opt image=$(BUILDKIT_REGISTRY)/moby/buildkit:buildx-stable-1 \
+			--driver docker-container \
+			--platform linux/amd64,linux/arm64 \
 			--use
 	@docker buildx use $(BUILDX_BUILDER)
 
@@ -36,17 +35,18 @@ docker-builder:
 docker:
 	@docker build \
 		--build-arg GOPROXY=https://goproxy.cn,direct \
-		--build-arg REGISTRY=$(REGISTRY) \
 		-t $(DOCKER_REPO):$(VERSION_FULL) \
 		-t $(DOCKER_REPO):latest .
 	@echo "Built: $(DOCKER_REPO):$(VERSION_FULL)"
 
 # Multi-arch build and push to registry
+# Usage: make docker-push
+# Requires: docker login git.pku.edu.cn
 docker-push: docker-builder
 	@docker buildx build \
+		--builder $(BUILDX_BUILDER) \
 		--platform linux/amd64,linux/arm64 \
 		--build-arg GOPROXY=https://goproxy.cn,direct \
-		--build-arg REGISTRY=$(REGISTRY) \
 		-t $(DOCKER_REPO):$(VERSION) \
 		-t $(DOCKER_REPO):$(VERSION_FULL) \
 		-t $(DOCKER_REPO):latest \

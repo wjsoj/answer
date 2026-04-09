@@ -46,6 +46,7 @@ const (
 	MCPSearchCondBookmark         = "bookmark"
 	MCPSearchCondGroupID          = "group_id"
 	MCPSearchCondSource           = "source"
+	MCPSearchCondSection          = "section"
 )
 
 type MCPSearchCond struct {
@@ -54,6 +55,7 @@ type MCPSearchCond struct {
 	Score      int      `json:"score"`
 	Tags       []string `json:"tags"`
 	QuestionID string   `json:"question_id"`
+	Section    string   `json:"section"`
 }
 
 type MCPSearchQuestionDetail struct {
@@ -124,6 +126,9 @@ func NewMCPSearchCond(request mcp.CallToolRequest) *MCPSearchCond {
 	}
 	if questionID, ok := getRequestValue(request, MCPSearchCondQuestionID); ok {
 		cond.QuestionID = questionID
+	}
+	if section, ok := getRequestValue(request, MCPSearchCondSection); ok {
+		cond.Section = section
 	}
 	return cond
 }

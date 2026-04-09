@@ -515,8 +515,14 @@ func buildBinary(b *buildingMaterial) (err error) {
 	cmdPkg := "github.com/apache/answer/cmd"
 	ldflags := fmt.Sprintf("-X %s.Version=%s -X %s.Revision=%s -X %s.Time=%s",
 		cmdPkg, versionInfo.Version, cmdPkg, versionInfo.Revision, cmdPkg, versionInfo.Time)
-	err = b.newExecCmd("go", "build",
-		"-ldflags", ldflags, "-o", b.outputPath, ".").Run()
+	args := []string{"build", "-ldflags", ldflags}
+	tags := os.Getenv("TAGS")
+	fmt.Printf("[build] TAGS env = %q\n", tags)
+	if tags != "" {
+		args = append(args, "-tags", tags)
+	}
+	args = append(args, "-o", b.outputPath, ".")
+	err = b.newExecCmd("go", args...).Run()
 	if err != nil {
 		return err
 	}

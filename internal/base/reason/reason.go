@@ -118,6 +118,9 @@ const (
 	UserStatusSuspendedUntil         = "error.user.status_suspended_until"
 	UserStatusDeleted                = "error.user.status_deleted"
 	ErrFeatureDisabled               = "error.feature.disabled"
+	ForumSectionNotFound             = "error.forum.section_not_found"
+	ForumSectionAccessDenied         = "error.forum.section_access_denied"
+	ForumSectionPermissionDenied     = "error.forum.section_permission_denied"
 )
 
 // user external login reasons

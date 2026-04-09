@@ -22,21 +22,30 @@ package controller
 import (
 	"github.com/apache/answer/internal/base/handler"
 	"github.com/apache/answer/internal/base/middleware"
+	"github.com/apache/answer/internal/base/reason"
 	"github.com/apache/answer/internal/schema"
 	"github.com/apache/answer/internal/service/activity"
+	"github.com/apache/answer/internal/service/content"
 	"github.com/apache/answer/internal/service/role"
 	"github.com/apache/answer/pkg/uid"
 	"github.com/gin-gonic/gin"
+	"github.com/segmentfault/pacman/errors"
 )
 
 type ActivityController struct {
 	activityService *activity.ActivityService
+	questionService *content.QuestionService
 }
 
 // NewActivityController new activity controller.
 func NewActivityController(
-	activityService *activity.ActivityService) *ActivityController {
-	return &ActivityController{activityService: activityService}
+	activityService *activity.ActivityService,
+	questionService *content.QuestionService,
+) *ActivityController {
+	return &ActivityController{
+		activityService: activityService,
+		questionService: questionService,
+	}
 }
 
 // GetObjectTimeline get object timeline
@@ -60,6 +69,13 @@ func (ac *ActivityController) GetObjectTimeline(ctx *gin.Context) {
 	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
 	if userInfo := middleware.GetUserInfoFromContext(ctx); userInfo != nil {
 		req.IsAdmin = userInfo.RoleID == role.RoleAdminID
+	}
+
+	// Check section access for the object
+	canAccess, _ := ac.questionService.CanAccessObjectByID(ctx, req.UserID, req.ObjectID)
+	if !canAccess {
+		handler.HandleResponse(ctx, errors.NotFound(reason.ObjectNotFound), nil)
+		return
 	}
 
 	resp, err := ac.activityService.GetObjectTimeline(ctx, req)

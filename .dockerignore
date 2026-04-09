@@ -1,0 +1,22 @@
+# Node modules - let Docker build its own
+**/node_modules
+
+# Build artifacts
+ui/build
+answer
+new_answer
+
+# Data directory
+data/
+
+# Git
+.git
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

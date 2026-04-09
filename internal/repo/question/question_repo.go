@@ -393,7 +393,7 @@ func (qr *questionRepo) SitemapQuestions(ctx context.Context, page, pageSize int
 
 // GetQuestionPage query question page
 func (qr *questionRepo) GetQuestionPage(ctx context.Context, page, pageSize int,
-	tagIDs []string, userID, orderCond string, inDays int, showHidden, showPending bool) (
+	tagIDs, excludeTagIDs []string, userID, orderCond string, inDays int, showHidden, showPending bool) (
 	questionList []*entity.Question, total int64, err error) {
 	questionList = make([]*entity.Question, 0)
 	session := qr.data.DB.Context(ctx)
@@ -410,6 +410,20 @@ func (qr *questionRepo) GetQuestionPage(ctx context.Context, page, pageSize int,
 		session.Join("LEFT", "tag_rel", "question.id = tag_rel.object_id")
 		session.In("tag_rel.tag_id", tagIDs)
 		session.And("tag_rel.status = ?", entity.TagRelStatusAvailable)
+	}
+	if len(excludeTagIDs) > 0 {
+		excludeArgs := make([]interface{}, len(excludeTagIDs))
+		for i, id := range excludeTagIDs {
+			excludeArgs[i] = id
+		}
+		session.And(builder.NotIn("question.id",
+			builder.Select("tr.object_id").From("tag_rel tr").Where(
+				builder.And(
+					builder.In("tr.tag_id", excludeArgs...),
+					builder.Eq{"tr.status": entity.TagRelStatusAvailable},
+				),
+			),
+		))
 	}
 	if len(userID) > 0 {
 		session.And("question.user_id = ?", userID)

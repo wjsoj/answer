@@ -285,6 +285,12 @@ func (qc *QuestionController) GetQuestion(ctx *gin.Context) {
 // @Router /answer/api/v1/question/invite [get]
 func (qc *QuestionController) GetQuestionInviteUserInfo(ctx *gin.Context) {
 	questionID := uid.DeShortID(ctx.Query("id"))
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	canAccess, _ := qc.questionService.CanAccessQuestionByID(ctx, userID, questionID)
+	if !canAccess {
+		handler.HandleResponse(ctx, errors.NotFound(reason.QuestionNotFound), nil)
+		return
+	}
 	resp, err := qc.questionService.InviteUserInfo(ctx, questionID)
 	handler.HandleResponse(ctx, err, resp)
 }
@@ -810,7 +816,8 @@ func (qc *QuestionController) UpdateQuestionInviteUser(ctx *gin.Context) {
 // @Router /answer/api/v1/question/similar [get]
 func (qc *QuestionController) GetSimilarQuestions(ctx *gin.Context) {
 	title := ctx.Query("title")
-	resp, err := qc.questionService.GetQuestionsByTitle(ctx, title)
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := qc.questionService.GetQuestionsByTitle(ctx, title, userID)
 	handler.HandleResponse(ctx, err, resp)
 }
 
@@ -997,4 +1004,100 @@ func (qc *QuestionController) GetQuestionLink(ctx *gin.Context) {
 		return
 	}
 	handler.HandleResponse(ctx, nil, pager.NewPageModel(total, questions))
+}
+
+// ForumSections get accessible forum sections
+// @Summary get accessible forum sections
+// @Description get forum sections the current user can access
+// @Tags Forum
+// @Produce json
+// @Success 200 {object} handler.RespBody{data=schema.ForumSectionPageResp}
+// @Router /answer/api/v1/forum/sections [get]
+func (qc *QuestionController) ForumSections(ctx *gin.Context) {
+	userID := middleware.GetLoginUserIDFromContext(ctx)
+	resp, err := qc.questionService.GetAccessibleForumSections(ctx, userID)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+// UpdateForumSectionVisibility update section visibility
+// @Summary update section visibility
+// @Description update forum section visibility (public/private)
+// @Tags Forum
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param data body schema.ForumSectionVisibilityReq true "ForumSectionVisibilityReq"
+// @Success 200 {object} handler.RespBody
+// @Router /answer/api/v1/forum/section/visibility [put]
+func (qc *QuestionController) UpdateForumSectionVisibility(ctx *gin.Context) {
+	req := &schema.ForumSectionVisibilityReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
+	req.IsAdmin = middleware.GetUserIsAdminModerator(ctx)
+	err := qc.questionService.UpdateForumSectionVisibility(ctx, req)
+	handler.HandleResponse(ctx, err, nil)
+}
+
+// InviteForumSectionUsers invite users to a forum section
+// @Summary invite users to section
+// @Description invite users as member or moderator of a forum section
+// @Tags Forum
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param data body schema.ForumSectionInviteReq true "ForumSectionInviteReq"
+// @Success 200 {object} handler.RespBody
+// @Router /answer/api/v1/forum/section/invite [put]
+func (qc *QuestionController) InviteForumSectionUsers(ctx *gin.Context) {
+	req := &schema.ForumSectionInviteReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	req.InviterID = middleware.GetLoginUserIDFromContext(ctx)
+	req.IsAdmin = middleware.GetUserIsAdminModerator(ctx)
+	resp, err := qc.questionService.InviteForumSectionUsers(ctx, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+// ForumSectionPermissions get section permission lists
+// @Summary get section permissions
+// @Description get members and moderators of a forum section
+// @Tags Forum
+// @Produce json
+// @Security ApiKeyAuth
+// @Param section query string true "section slug"
+// @Success 200 {object} handler.RespBody{data=schema.ForumSectionPermissionResp}
+// @Router /answer/api/v1/forum/section/permissions [get]
+func (qc *QuestionController) ForumSectionPermissions(ctx *gin.Context) {
+	req := &schema.ForumSectionPermissionQueryReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	req.UserID = middleware.GetLoginUserIDFromContext(ctx)
+	req.IsAdmin = middleware.GetUserIsAdminModerator(ctx)
+	resp, err := qc.questionService.GetForumSectionPermissions(ctx, req)
+	handler.HandleResponse(ctx, err, resp)
+}
+
+// RemoveForumSectionUsers remove users from a forum section role
+// @Summary remove users from section
+// @Description remove users from member or moderator role of a forum section
+// @Tags Forum
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param data body schema.ForumSectionRemoveReq true "ForumSectionRemoveReq"
+// @Success 200 {object} handler.RespBody
+// @Router /answer/api/v1/forum/section/remove [put]
+func (qc *QuestionController) RemoveForumSectionUsers(ctx *gin.Context) {
+	req := &schema.ForumSectionRemoveReq{}
+	if handler.BindAndCheck(ctx, req) {
+		return
+	}
+	req.RemoverID = middleware.GetLoginUserIDFromContext(ctx)
+	req.IsAdmin = middleware.GetUserIsAdminModerator(ctx)
+	err := qc.questionService.RemoveForumSectionUsers(ctx, req)
+	handler.HandleResponse(ctx, err, nil)
 }

@@ -19,34 +19,67 @@
 
 import { FC } from 'react';
 import { Nav } from 'react-bootstrap';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+  NavLink,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { loggedUserInfoStore, sideNavStore, aiControlStore } from '@/stores';
 import { Icon, PluginRender } from '@/components';
 import { PluginType } from '@/utils/pluginKit';
+import { useForumSections } from '@/services/common';
 import request from '@/utils/request';
 
 import './index.scss';
 
 const Index: FC = () => {
   const { t } = useTranslation();
+  const { t: tq } = useTranslation('translation', { keyPrefix: 'question' });
   const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  const curSection = searchParams.get('section') || '';
   const { user: userInfo } = loggedUserInfoStore();
   const { can_revision, revision } = sideNavStore();
   const { ai_enabled } = aiControlStore();
   const navigate = useNavigate();
+  const { data: sectionsData } = useForumSections();
+  const sections = sectionsData?.list || [];
+
+  const isQuestionsPage = pathname === '/' || pathname === '/questions';
+  const hasManageableSections = sections.some((s) => s.can_manage);
 
   return (
     <Nav variant="pills" className="flex-column" id="sideNav">
       <NavLink
         to="/questions"
-        className={({ isActive }) =>
-          isActive || pathname === '/' ? 'nav-link active' : 'nav-link'
+        className={() =>
+          isQuestionsPage && !curSection ? 'nav-link active' : 'nav-link'
         }>
         <Icon name="question-circle-fill" className="me-2" />
-        <span>{t('header.nav.question')}</span>
+        <span>{tq('all_sections')}</span>
       </NavLink>
+
+      {sections.map((section) => (
+        <NavLink
+          key={section.tag_id}
+          to={`/questions?section=${section.slug_name}`}
+          className={() =>
+            isQuestionsPage && curSection === section.slug_name
+              ? 'nav-link active'
+              : 'nav-link'
+          }>
+          <Icon
+            name={
+              section.visibility === 'private' ? 'lock-fill' : 'chat-dots-fill'
+            }
+            className="me-2"
+          />
+          <span>{section.display_name}</span>
+        </NavLink>
+      ))}
 
       {ai_enabled && (
         <NavLink
@@ -85,7 +118,7 @@ const Index: FC = () => {
         navigate={navigate}
       />
 
-      {can_revision || userInfo?.role_id === 2 ? (
+      {can_revision || userInfo?.role_id === 2 || hasManageableSections ? (
         <>
           <div className="py-2 px-3 mt-3 small fw-bold">
             {t('header.nav.moderation')}
@@ -97,6 +130,13 @@ const Index: FC = () => {
               <span className="float-end">
                 {revision > 99 ? '99+' : revision > 0 ? revision : ''}
               </span>
+            </NavLink>
+          )}
+
+          {hasManageableSections && (
+            <NavLink to="/section-manage" className="nav-link">
+              <Icon name="sliders" className="me-2" />
+              <span>{t('header.nav.section_manage')}</span>
             </NavLink>
           )}
 

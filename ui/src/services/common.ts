@@ -339,3 +339,11 @@ export const getPluginsStatus = () => {
 export const deletePermanently = (type: string) => {
   return request.delete('/answer/admin/api/delete/permanently', { type });
 };
+
+export const useForumSections = () => {
+  const apiUrl = '/answer/api/v1/forum/sections';
+  const { data, error, mutate } = useSWR<
+    Type.ListResult<Type.ForumSectionItem>
+  >(apiUrl, (url) => request.get(url, { allow404: true }));
+  return { data, isLoading: !data && !error, error, mutate };
+};

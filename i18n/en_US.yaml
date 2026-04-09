@@ -467,6 +467,13 @@ backend:
                 other: Invalid URL.
             status_invalid:
                 other: Invalid status.
+        forum:
+            section_not_found:
+                other: Forum section not found.
+            section_access_denied:
+                other: You do not have access to this forum section.
+            section_permission_denied:
+                other: You do not have permission to manage this forum section.
         config:
             read_config_failed:
                 other: Read config failed
@@ -1373,6 +1380,28 @@ ui:
                         label: Username
                         msg_range: Username must be 2-30 characters in length.
             title: Edit profile
+        forum_permissions:
+            title: Forum Sections
+            section: Section
+            visibility: Visibility
+            public: Public
+            private: Private
+            members: Members
+            moderators: Moderators
+            invite_users: Invite Users
+            invite_placeholder: "Enter usernames, separated by commas or newlines"
+            search_user_placeholder: "Search username..."
+            invite_as_member: Invite as Member
+            invite_as_moderator: Invite as Moderator
+            remove: Remove
+            save: Save
+            invite: Invite
+            no_members: No members yet
+            no_moderators: No moderators yet
+            skipped_users: "The following users were not found and were skipped"
+            visibility_updated: Visibility updated successfully
+            users_invited: Users invited successfully
+            users_removed: Users removed successfully
         flags:
             action: Action
             completed: Completed
@@ -2041,6 +2070,7 @@ ui:
             profile: Profile
             question: Questions
             review: Review
+            section_manage: Section Management
             setting: Settings
             tag: Tags
             user: Users
@@ -2241,6 +2271,7 @@ ui:
         dashboard: Dashboard
         files: Files
         flags: Flags
+        forum_permissions: Forum Sections
         general: General
         installed_plugins: Installed Plugins
         intelligence: Intelligence
@@ -2428,6 +2459,9 @@ ui:
     question:
         active: Active
         all_questions: All Questions
+        forum_sections: Forum Sections
+        all_sections: All Sections
+        private_label: "(Private)"
         answered: answered
         answers: Answers
         asked: asked
@@ -2534,6 +2568,23 @@ ui:
         review_answer_title: Review answer
         review_comment_title: Review comment
         review_question_title: Review question
+    section_manage:
+        title: Section Management
+        section: Section
+        visibility: Visibility
+        public: Public
+        private: Private
+        members: Members
+        moderators: Moderators
+        invite_users: Invite Users
+        search_user_placeholder: "Search username..."
+        invite_as_member: Invite as Member
+        invite_as_moderator: Invite as Moderator
+        invite: Invite
+        no_members: No members yet
+        no_moderators: No moderators yet
+        skipped_users: "The following users were not found and were skipped"
+        no_manageable_sections: You don't have any sections to manage.
     search:
         counts: '{{count}} Results'
         counts_loading: '... Results'
