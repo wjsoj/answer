@@ -472,6 +472,8 @@ backend:
                 other: 您没有权限访问该论坛板块。
             section_permission_denied:
                 other: 您没有权限管理该论坛板块。
+            section_post_denied:
+                other: 您没有权限在该板块发帖。
         config:
             read_config_failed:
                 other: 读取配置失败
@@ -1777,6 +1779,11 @@ ui:
                     placeholder: 简单描述更改原因（更正拼写、修复语法、改进格式）
                 revision:
                     label: 修订版本
+                section:
+                    hint: 选择帖子所属的板块
+                    label: 板块
+                    msg:
+                        empty: 请选择一个板块。
                 tags:
                     label: 标签
                     msg:

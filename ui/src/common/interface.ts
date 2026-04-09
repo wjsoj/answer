@@ -83,6 +83,7 @@ export interface QuestionParams extends ImgCodeReq {
   url_title?: string;
   content: string;
   tags: Tag[];
+  section?: string;
 }
 
 export interface QuestionWithAnswer extends QuestionParams {
@@ -317,6 +318,8 @@ export interface ForumSectionItem {
   display_name: string;
   visibility: 'public' | 'private';
   can_manage: boolean;
+  can_post: boolean;
+  is_default: boolean;
 }
 
 export interface ForumSectionPermissionItem {

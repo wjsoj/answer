@@ -26,6 +26,8 @@ type ForumSectionResp struct {
 	DisplayName string `json:"display_name"`
 	Visibility  string `json:"visibility"`
 	CanManage   bool   `json:"can_manage"`
+	CanPost     bool   `json:"can_post"`
+	IsDefault   bool   `json:"is_default"`
 }
 
 // ForumSectionPageResp paginated list of forum sections

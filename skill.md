@@ -197,3 +197,181 @@ sqlite3 data/answer.db "SELECT * FROM site_info;"
 # 前端开发
 cd ui && pnpm start
 ```
+
+---
+
+## 6. Docker 构建与发版 SOP
+
+### 概览
+
+多阶段 Dockerfile：前端 (React CRA) 和后端 (Go) 在同一镜像内编译，UI 资源通过 `//go:embed` 嵌入 Go 二进制。支持多架构 (amd64 + arm64) 构建推送。
+
+### 6.1 前置检查（极其重要）
+
+#### CRA CI 模式的隐蔽陷阱
+
+Docker 中 CRA 以 `CI=true` 模式运行，**lint warning 会被视为 error**，导致 `pnpm build` **不产出任何 build 文件但退出码为 0**。后果是 Go embed 嵌入空目录，运行时报 `build/index.html: file does not exist`。
+
+**构建前必须确保前端 lint 通过**：
+```bash
+cd ui && pnpm lint && pnpm prettier --check "src/**/*.{ts,tsx}"
+```
+
+常见导致 warning 的问题：
+- prettier 格式不一致（如三元表达式换行方式）
+- unused imports
+- missing dependencies in useEffect
+
+#### 确认版本号
+
+```bash
+make version                    # 查看当前 git tag 推导的版本
+git tag -l | sort -V | tail -5  # 查看最近 tag
+```
+
+发新版本：
+```bash
+git tag v2.1.0
+git push origin v2.1.0
+```
+
+#### 确认 Docker 登录状态
+
+```bash
+docker login git.pku.edu.cn
+```
+
+### 6.2 本地单架构构建（快速验证）
+
+```bash
+make docker
+```
+
+验证镜像包含前端：
+```bash
+# 二进制大小应 >95MB（含 ~26MB UI 资源），<80MB 说明前端缺失
+docker run --rm git.pku.edu.cn/2200011523/answer:latest ls -la /usr/bin/answer
+
+# 启动测试
+docker compose up -d
+curl -s http://localhost:9080/ | head -5  # 应返回 HTML
+docker compose down
+```
+
+### 6.3 多架构构建与推送
+
+#### 确保 buildx builder 存在
+
+```bash
+make docker-builder
+```
+
+项目中的 builder：
+
+| Builder | Registry | 用途 |
+|---------|----------|------|
+| `multiarch-builder` | Docker Hub (默认) | **主力**，用于多架构构建 |
+| `cn-builder` | docker.xuanyuan.run | 备用，国内镜像源 |
+
+#### 后台执行构建（推荐）
+
+使用 Bash 工具的 `run_in_background: true` 参数启动构建，输出重定向到日志文件：
+
+```bash
+docker buildx build \
+  --builder multiarch-builder \
+  --platform linux/amd64,linux/arm64 \
+  --build-arg GOPROXY=https://goproxy.cn,direct \
+  -t git.pku.edu.cn/2200011523/answer:2.1.0 \
+  -t git.pku.edu.cn/2200011523/answer:latest \
+  --push . \
+  > /tmp/docker-build.log 2>&1
+```
+
+#### 查看构建进度
+
+使用 `Read` 工具读取日志文件（**不要用 tail**）：
+
+```
+Read /tmp/docker-build.log          # 查看完整日志
+Read /tmp/docker-build.log offset=N # 从第 N 行开始看（跳过已看过的部分）
+```
+
+也可以结合 `Bash` 工具用 `wc -l /tmp/docker-build.log` 看日志行数判断进度。
+
+#### 构建完成后清理
+
+```bash
+rm -f /tmp/docker-build.log
+```
+
+### 6.4 容器化测试
+
+```bash
+docker compose up -d
+# 等待就绪
+sleep 5 && curl -sf http://localhost:9080/ > /dev/null && echo "Ready"
+```
+
+默认配置（docker-compose.yml）：
+- 端口：9080，数据库：SQLite，管理员：admin / admin123456，自动安装：是
+
+验证项：
+
+| 检查项 | 方法 |
+|--------|------|
+| 首页加载 | `curl -s http://localhost:9080/` 返回 HTML |
+| 登录页 | 浏览器访问 `http://localhost:9080/users/login` |
+| API 响应 | `curl -s http://localhost:9080/answer/api/v1/question/page` |
+
+清理：
+```bash
+docker compose down
+rm -rf ./data/*.db ./data/cache  # 如需清理数据
+```
+
+### 6.5 常见故障排查
+
+#### 镜像中没有前端（最常见）
+
+**症状**：所有页面 404，日志报 `build/index.html: file does not exist`，二进制 ~76MB（正常 >95MB）。
+
+**根因**：CRA CI 模式 lint warning → 不产出 build → Go embed 空目录。
+
+**排查**：在 Dockerfile `pnpm build` 后添加 `RUN ls -la ui/build/`。
+
+**修复**：修复所有前端 lint warning。
+
+#### Alpine 镜像源 TLS 错误
+
+多见于 arm64 交叉编译。应对：重试、换镜像源（`mirrors.tuna.tsinghua.edu.cn`）、或临时去掉 arm64。
+
+#### pnpm store 缓存丢失导致 plugin build 失败
+
+`answer build` 内部会执行 `pnpm install` + `pnpm build`。Dockerfile 中 plugin build 步骤**必须**挂载 pnpm store cache：
+
+```dockerfile
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/root/.pnpm-store \
+    pnpm config set store-dir /root/.pnpm-store \
+    && /bin/bash script/build_plugin.sh
+```
+
+#### buildx 构建卡住
+
+```bash
+docker buildx stop multiarch-builder
+docker buildx rm multiarch-builder
+make docker-builder  # 重新创建
+```
+
+### 6.6 完整发版 Checklist
+
+```
+[ ] 1. cd ui && pnpm lint（前端 lint 必须通过）
+[ ] 2. make docker && docker compose up -d → 验证 → docker compose down
+[ ] 3. git tag vX.Y.Z && git push origin vX.Y.Z
+[ ] 4. make docker-push（后台运行，Read /tmp/docker-build.log 查看进度）
+[ ] 5. docker pull git.pku.edu.cn/2200011523/answer:X.Y.Z 验证
+[ ] 6. 清理：rm /tmp/docker-build.log，按需停止 builder 容器
+```

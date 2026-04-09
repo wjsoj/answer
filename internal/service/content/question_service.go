@@ -314,6 +314,46 @@ func (qs *QuestionService) AddQuestion(ctx context.Context, req *schema.Question
 		err = errors.BadRequest(reason.TagMinCount)
 		return errorlist, err
 	}
+
+	// Section validation and injection
+	if req.Section != "" {
+		sectionTagID, sectionErr := qs.getSectionMainTagIDBySlug(ctx, req.Section)
+		if sectionErr != nil {
+			errorlist := make([]*validator.FormErrorField, 0)
+			errorlist = append(errorlist, &validator.FormErrorField{
+				ErrorField: "section",
+				ErrorMsg:   translator.Tr(handler.GetLangByCtx(ctx), reason.ForumSectionNotFound),
+			})
+			return errorlist, errors.BadRequest(reason.ForumSectionNotFound)
+		}
+		// Check posting permission
+		canPost, postErr := qs.canAccessSectionByTagID(ctx, req.UserID, sectionTagID)
+		if postErr != nil {
+			return nil, postErr
+		}
+		if !canPost {
+			errorlist := make([]*validator.FormErrorField, 0)
+			errorlist = append(errorlist, &validator.FormErrorField{
+				ErrorField: "section",
+				ErrorMsg:   translator.Tr(handler.GetLangByCtx(ctx), reason.ForumSectionPostDenied),
+			})
+			return errorlist, errors.Forbidden(reason.ForumSectionPostDenied)
+		}
+		// Inject section tag if not already present
+		sectionAlreadyPresent := false
+		for _, tag := range req.Tags {
+			if tag.SlugName == req.Section {
+				sectionAlreadyPresent = true
+				break
+			}
+		}
+		if !sectionAlreadyPresent {
+			req.Tags = append(req.Tags, &schema.TagItem{
+				SlugName: req.Section,
+			})
+		}
+	}
+
 	minimumContentLength, err := qs.questioncommon.GetMinimumContentLength(ctx)
 	if err != nil {
 		return

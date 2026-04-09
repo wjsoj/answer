@@ -623,11 +623,14 @@ func (c *MCPController) MCPCreateQuestionHandler() func(ctx context.Context, req
 			}
 		}
 
+		section, _ := args["section"].(string)
+
 		req := &schema.QuestionAdd{
 			Title:   title,
 			Content: content,
 			HTML:    converter.Markdown2HTML(content),
 			Tags:    tags,
+			Section: section,
 			UserID:  userID,
 		}
 
@@ -669,12 +672,15 @@ func (c *MCPController) MCPUpdateQuestionHandler() func(ctx context.Context, req
 			}
 		}
 
+		section, _ := args["section"].(string)
+
 		req := &schema.QuestionUpdate{
 			ID:          questionID,
 			Title:       title,
 			Content:     content,
 			HTML:        converter.Markdown2HTML(content),
 			Tags:        tags,
+			Section:     section,
 			EditSummary: editSummary,
 			UserID:      userID,
 		}

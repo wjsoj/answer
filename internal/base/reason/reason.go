@@ -121,6 +121,7 @@ const (
 	ForumSectionNotFound             = "error.forum.section_not_found"
 	ForumSectionAccessDenied         = "error.forum.section_access_denied"
 	ForumSectionPermissionDenied     = "error.forum.section_permission_denied"
+	ForumSectionPostDenied           = "error.forum.section_post_denied"
 )
 
 // user external login reasons

@@ -42,6 +42,7 @@ import {
   getTagsBySlugName,
   saveQuestionWithAnswer,
 } from '@/services';
+import { useForumSections } from '@/services/common';
 import {
   handleFormError,
   SaveDraft,
@@ -55,6 +56,7 @@ import SearchQuestion from './components/SearchQuestion';
 
 interface FormDataItem {
   title: Type.FormValue<string>;
+  section: Type.FormValue<string>;
   tags: Type.FormValue<Type.Tag[]>;
   content: Type.FormValue<string>;
   answer_content: Type.FormValue<string>;
@@ -66,6 +68,11 @@ const saveDraft = new SaveDraft({ type: 'question' });
 const Ask = () => {
   const initFormData = {
     title: {
+      value: '',
+      isInvalid: false,
+      errorMsg: '',
+    },
+    section: {
       value: '',
       isInvalid: false,
       errorMsg: '',
@@ -122,6 +129,8 @@ const Ask = () => {
     });
   };
   const writeInfo = writeSettingStore((state) => state.write);
+  const { data: sectionsData } = useForumSections();
+  const postableSections = (sectionsData?.list || []).filter((s) => s.can_post);
 
   const isEdit = qid !== undefined;
 
@@ -162,6 +171,7 @@ const Ask = () => {
           formData.content.value = draft.content;
           formData.tags.value = draft.tags;
           formData.answer_content.value = draft.answer_content;
+          formData.section.value = draft.section || '';
           setCheckState(Boolean(draft.answer_content));
           setHasDraft(true);
         }
@@ -175,6 +185,24 @@ const Ask = () => {
       resetForm();
     };
   }, [qid]);
+
+  useEffect(() => {
+    if (!qid && !formData.section.value && postableSections.length > 0) {
+      const querySection = searchParams.get('section');
+      const defaultSection = postableSections.find((s) => s.is_default);
+      const sectionValue =
+        querySection ||
+        defaultSection?.slug_name ||
+        postableSections[0]?.slug_name ||
+        '';
+      if (sectionValue) {
+        setFormData((prev) => ({
+          ...prev,
+          section: { value: sectionValue, isInvalid: false, errorMsg: '' },
+        }));
+      }
+    }
+  }, [postableSections, qid]);
 
   useEffect(() => {
     const { title, tags, content, answer_content } = formData;
@@ -210,6 +238,7 @@ const Ask = () => {
           tags: tags.value,
           content: content.value,
           answer_content: answer_content.value,
+          section: formData.section.value,
         },
         callback: () => setHasDraft(true),
       });
@@ -240,6 +269,18 @@ const Ask = () => {
           original_text: '',
         };
       });
+      // Detect section tag and separate it from regular tags
+      const sectionTag = res.tags.find(
+        (tag) =>
+          postableSections.some((s) => s.slug_name === tag.slug_name) ||
+          sectionsData?.list?.some((s) => s.slug_name === tag.slug_name),
+      );
+      if (sectionTag) {
+        formData.section.value = sectionTag.slug_name;
+        formData.tags.value = formData.tags.value.filter(
+          (tag) => tag.slug_name !== sectionTag.slug_name,
+        );
+      }
       setImmData({ ...formData });
       setFormData({ ...formData });
     });
@@ -276,6 +317,12 @@ const Ask = () => {
     setFormData({
       ...formData,
       tags: { value, errorMsg: '', isInvalid: false },
+    });
+
+  const handleSectionChange = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setFormData({
+      ...formData,
+      section: { value: e.target.value, errorMsg: '', isInvalid: false },
     });
 
   const handleAnswerChange = (value: string) =>
@@ -388,6 +435,7 @@ const Ask = () => {
       title: formData.title.value,
       content: formData.content.value,
       tags: formData.tags.value,
+      section: formData.section.value,
     };
 
     if (isEdit) {
@@ -506,6 +554,23 @@ const Ask = () => {
               <Form.Control.Feedback type="invalid">
                 {formData.content.errorMsg}
               </Form.Control.Feedback>
+            </Form.Group>
+            <Form.Group controlId="section" className="my-3">
+              <Form.Label>{t('form.fields.section.label')}</Form.Label>
+              <Form.Select
+                value={formData.section.value}
+                isInvalid={formData.section.isInvalid}
+                onChange={handleSectionChange}>
+                {postableSections.map((s) => (
+                  <option key={s.tag_id} value={s.slug_name}>
+                    {s.display_name}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Control.Feedback type="invalid">
+                {formData.section.errorMsg}
+              </Form.Control.Feedback>
+              <Form.Text>{t('form.fields.section.hint')}</Form.Text>
             </Form.Group>
             <Form.Group controlId="tags" className="my-3">
               <Form.Label>{t('form.fields.tags.label')}</Form.Label>

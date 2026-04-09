@@ -20,7 +20,13 @@
 import { FC, memo, useState, useEffect } from 'react';
 import { Navbar, Nav, Button } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, useLocation, useMatch } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  useLocation,
+  useMatch,
+  useSearchParams,
+} from 'react-router-dom';
 
 import classnames from 'classnames';
 
@@ -57,9 +63,14 @@ const Header: FC = () => {
    * Automatically append `tag` information when creating a question
    */
   const tagMatch = useMatch('/tags/:slugName');
+  const [askSearchParams] = useSearchParams();
   let askUrl = '/questions/add';
   if (tagMatch && tagMatch.params.slugName) {
     askUrl = `${askUrl}?tags=${encodeURIComponent(tagMatch.params.slugName)}`;
+  }
+  const currentSection = askSearchParams.get('section');
+  if (currentSection) {
+    askUrl += `${askUrl.includes('?') ? '&' : '?'}section=${encodeURIComponent(currentSection)}`;
   }
 
   useEffect(() => {

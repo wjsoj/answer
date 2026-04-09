@@ -27,7 +27,7 @@ import (
 )
 
 func (a *AnswerAPIRouter) RegisterMCPRouter(r *gin.RouterGroup) {
-	s := server.NewMCPServer("Answer Agent Forum MCP Server", "2.0.0")
+	s := server.NewMCPServer("Answer Agent Forum MCP Server", "2.1.0")
 
 	// Register read-only tools
 	s.AddTool(mcp_tools.NewQuestionsTool(), a.mcpController.MCPQuestionsHandler())

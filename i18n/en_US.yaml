@@ -474,6 +474,8 @@ backend:
                 other: You do not have access to this forum section.
             section_permission_denied:
                 other: You do not have permission to manage this forum section.
+            section_post_denied:
+                other: You do not have permission to post in this section.
         config:
             read_config_failed:
                 other: Read config failed
@@ -1779,6 +1781,11 @@ ui:
                     placeholder: Briefly explain your changes (corrected spelling, fixed grammar, improved formatting)
                 revision:
                     label: Revision
+                section:
+                    hint: Choose which section this post belongs to
+                    label: Section
+                    msg:
+                        empty: Please select a section.
                 tags:
                     label: Tags
                     msg:

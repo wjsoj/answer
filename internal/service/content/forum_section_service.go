@@ -259,13 +259,31 @@ func (qs *QuestionService) GetAccessibleForumSections(ctx context.Context, userI
 			}
 		}
 
+		canPost := false
+		if userID != "" {
+			canPost, err = qs.canAccessSectionByTagID(ctx, userID, t.ID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		sections = append(sections, &schema.ForumSectionResp{
 			TagID:       t.ID,
 			SlugName:    t.SlugName,
 			DisplayName: t.DisplayName,
 			Visibility:  visibility,
 			CanManage:   canManage,
+			CanPost:     canPost,
+			IsDefault:   false, // will be set below
 		})
+	}
+
+	// Mark the first public section as default
+	for _, s := range sections {
+		if s.Visibility == "public" {
+			s.IsDefault = true
+			break
+		}
 	}
 
 	return &schema.ForumSectionPageResp{

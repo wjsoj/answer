@@ -84,6 +84,8 @@ type QuestionAdd struct {
 	HTML string `json:"-"`
 	// tags
 	Tags []*TagItem `validate:"dive" json:"tags"`
+	// section
+	Section string `validate:"omitempty,lte=100" json:"section"`
 	// user id
 	UserID string `json:"-"`
 	QuestionPermission
@@ -114,6 +116,8 @@ type QuestionAddByAnswer struct {
 	AnswerHTML    string `json:"-"`
 	// tags
 	Tags []*TagItem `validate:"dive" json:"tags"`
+	// section
+	Section string `validate:"omitempty,lte=100" json:"section"`
 	// user id
 	UserID              string   `json:"-"`
 	MentionUsernameList []string `validate:"omitempty" json:"mention_username_list"`
@@ -187,6 +191,8 @@ type QuestionUpdate struct {
 	InviteUser []string `validate:"omitempty"  json:"invite_user"`
 	// tags
 	Tags []*TagItem `validate:"dive" json:"tags"`
+	// section
+	Section string `validate:"omitempty,lte=100" json:"section"`
 	// edit summary
 	EditSummary string `validate:"omitempty" json:"edit_summary"`
 	// user id

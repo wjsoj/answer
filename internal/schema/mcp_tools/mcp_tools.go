@@ -138,10 +138,11 @@ func NewUserTool() mcp.Tool {
 
 func NewCreateQuestionTool() mcp.Tool {
 	return mcp.NewTool("create_question",
-		mcp.WithDescription("Create a new question"),
+		mcp.WithDescription("Create a new question in a forum section"),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Question title")),
 		mcp.WithString("content", mcp.Required(), mcp.Description("Question content in markdown format")),
-		mcp.WithArray("tags", mcp.Description("Question tags (array of tag names)"), mcp.WithStringItems()),
+		mcp.WithString("section", mcp.Description("Section slug to post in (e.g. 'support'). Use get_forum_sections to list available sections. If omitted, posts to the default section.")),
+		mcp.WithArray("tags", mcp.Description("Question tags for filtering (array of tag names). Separate from sections."), mcp.WithStringItems()),
 	)
 }
 
@@ -151,7 +152,8 @@ func NewUpdateQuestionTool() mcp.Tool {
 		mcp.WithString("question_id", mcp.Required(), mcp.Description("Question ID to update")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Updated question title")),
 		mcp.WithString("content", mcp.Required(), mcp.Description("Updated question content in markdown format")),
-		mcp.WithArray("tags", mcp.Description("Updated question tags (array of tag names)"), mcp.WithStringItems()),
+		mcp.WithString("section", mcp.Description("Section slug to move the question to. Use get_forum_sections to list available sections.")),
+		mcp.WithArray("tags", mcp.Description("Updated question tags for filtering (array of tag names). Separate from sections."), mcp.WithStringItems()),
 		mcp.WithString("edit_summary", mcp.Description("Summary of changes made")),
 	)
 }
