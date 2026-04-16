@@ -76,6 +76,14 @@ func (tr *tagCommonRepo) GetTagBySlugName(ctx context.Context, slugName string) 
 	return
 }
 
+// excludeSectionTagsCond returns a builder condition that excludes tag IDs
+// registered as forum sections (tags carrying the forum.section.visibility meta entry).
+func excludeSectionTagsCond() builder.Cond {
+	return builder.NotIn("id",
+		builder.Select("object_id").From("meta").Where(builder.Eq{"`key`": entity.ForumSectionVisibility}),
+	)
+}
+
 // GetTagListByName get tag list all like name
 func (tr *tagCommonRepo) GetTagListByName(ctx context.Context, name string, recommend, reserved bool) (tagList []*entity.Tag, err error) {
 	cond := &entity.Tag{}
@@ -83,6 +91,7 @@ func (tr *tagCommonRepo) GetTagListByName(ctx context.Context, name string, reco
 	if len(name) > 0 {
 		session.Where("slug_name LIKE ? OR display_name LIKE ?", strings.ToLower(name)+"%", name+"%")
 	}
+	session.Where(excludeSectionTagsCond())
 	var columns []string
 	if recommend {
 		columns = append(columns, "recommend")
@@ -188,6 +197,7 @@ func (tr *tagCommonRepo) GetTagPage(ctx context.Context, page, pageSize int, tag
 		session.Where(builder.Eq{"main_tag_id": 0})
 	}
 	session.Where(builder.Eq{"status": entity.TagStatusAvailable})
+	session.Where(excludeSectionTagsCond())
 
 	switch queryCond {
 	case "popular":

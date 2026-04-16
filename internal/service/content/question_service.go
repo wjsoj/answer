@@ -315,9 +315,12 @@ func (qs *QuestionService) AddQuestion(ctx context.Context, req *schema.Question
 		return errorlist, err
 	}
 
-	// Section validation and injection
+	// Section validation: resolve slug to tag ID and check posting permission.
+	// The section is stored directly on the question, not as a tag.
+	var sectionTagID string
 	if req.Section != "" {
-		sectionTagID, sectionErr := qs.getSectionMainTagIDBySlug(ctx, req.Section)
+		var sectionErr error
+		sectionTagID, sectionErr = qs.getSectionMainTagIDBySlug(ctx, req.Section)
 		if sectionErr != nil {
 			errorlist := make([]*validator.FormErrorField, 0)
 			errorlist = append(errorlist, &validator.FormErrorField{
@@ -326,7 +329,6 @@ func (qs *QuestionService) AddQuestion(ctx context.Context, req *schema.Question
 			})
 			return errorlist, errors.BadRequest(reason.ForumSectionNotFound)
 		}
-		// Check posting permission
 		canPost, postErr := qs.canAccessSectionByTagID(ctx, req.UserID, sectionTagID)
 		if postErr != nil {
 			return nil, postErr
@@ -339,20 +341,14 @@ func (qs *QuestionService) AddQuestion(ctx context.Context, req *schema.Question
 			})
 			return errorlist, errors.Forbidden(reason.ForumSectionPostDenied)
 		}
-		// Inject section tag if not already present
-		sectionAlreadyPresent := false
-		for _, tag := range req.Tags {
-			if tag.SlugName == req.Section {
-				sectionAlreadyPresent = true
-				break
-			}
-		}
-		if !sectionAlreadyPresent {
-			req.Tags = append(req.Tags, &schema.TagItem{
-				SlugName: req.Section,
-			})
-		}
 	}
+
+	// Strip section tags from the tag list — sections and tags are independent.
+	filteredTags, stripErr := qs.stripSectionTags(ctx, req.Tags)
+	if stripErr != nil {
+		return nil, stripErr
+	}
+	req.Tags = filteredTags
 
 	minimumContentLength, err := qs.questioncommon.GetMinimumContentLength(ctx)
 	if err != nil {
@@ -421,6 +417,7 @@ func (qs *QuestionService) AddQuestion(ctx context.Context, req *schema.Question
 	question.PostUpdateTime = now
 	question.Pin = entity.QuestionUnPin
 	question.Show = entity.QuestionShow
+	question.SectionTagID = sectionTagID
 	// question.UpdatedAt = nil
 	err = qs.questionRepo.AddQuestion(ctx, question)
 	if err != nil {
@@ -709,6 +706,13 @@ func (qs *QuestionService) UpdateQuestionCheckTags(ctx context.Context, req *sch
 		log.Error("GetObjectEntityTag error", tagerr)
 		return nil, nil
 	}
+
+	// Strip section tags — sections and tags are independent systems.
+	filteredTags, stripErr := qs.stripSectionTags(ctx, req.Tags)
+	if stripErr != nil {
+		return nil, stripErr
+	}
+	req.Tags = filteredTags
 
 	tagNameList := make([]string, 0)
 	oldtagNameList := make([]string, 0)
@@ -1556,8 +1560,9 @@ func (qs *QuestionService) GetQuestionPage(ctx context.Context, req *schema.Ques
 			showHidden = userRole == role.RoleAdminID || userRole == role.RoleModeratorID
 		}
 	}
-	// query by section condition: filter by section tag and its synonym tags
-	var tagIDs = make([]string, 0)
+	// Section filtering: uses question.section_tag_id column (independent of tags).
+	var sectionTagID string
+	var excludeSectionTagIDs []string
 	if len(req.Section) > 0 {
 		// Check section access
 		canAccess, err := qs.CanAccessSectionBySlug(ctx, req.LoginUserID, req.Section)
@@ -1567,23 +1572,18 @@ func (qs *QuestionService) GetQuestionPage(ctx context.Context, req *schema.Ques
 		if !canAccess {
 			return questions, 0, nil
 		}
-		sectionTag, exist, err := qs.tagCommon.GetTagBySlugName(ctx, strings.ToLower(req.Section))
-		if err != nil {
-			return nil, 0, err
-		}
-		if exist {
-			synTagIds, err := qs.tagCommon.GetTagIDsByMainTagID(ctx, sectionTag.ID)
-			if err != nil {
-				return nil, 0, err
-			}
-			tagIDs = append(tagIDs, synTagIds...)
-			tagIDs = append(tagIDs, sectionTag.ID)
-		} else {
+		resolvedID, resolveErr := qs.getSectionMainTagIDBySlug(ctx, req.Section)
+		if resolveErr != nil {
 			return questions, 0, nil
 		}
+		sectionTagID = resolvedID
+	} else {
+		// No section specified: exclude inaccessible private sections
+		excludeSectionTagIDs = qs.getInaccessibleSectionTagIDs(ctx, req.LoginUserID)
 	}
 
-	// query by tag condition
+	// Tag filtering: purely for tag-based search (independent of sections).
+	var tagIDs = make([]string, 0)
 	if len(req.Tag) > 0 {
 		tagInfo, exist, err := qs.tagCommon.GetTagBySlugName(ctx, strings.ToLower(req.Tag))
 		if err != nil {
@@ -1617,14 +1617,8 @@ func (qs *QuestionService) GetQuestionPage(ctx context.Context, req *schema.Ques
 		req.InDays = schema.HotInDays
 	}
 
-	// When no specific section is requested, exclude private sections the user can't access
-	var excludeTagIDs []string
-	if len(req.Section) == 0 {
-		excludeTagIDs = qs.getInaccessibleSectionTagIDs(ctx, req.LoginUserID)
-	}
-
 	questionList, total, err := qs.questionRepo.GetQuestionPage(ctx, req.Page, req.PageSize,
-		tagIDs, excludeTagIDs, req.UserIDBeSearched, req.OrderCond, req.InDays, showHidden, req.ShowPending)
+		tagIDs, sectionTagID, excludeSectionTagIDs, req.UserIDBeSearched, req.OrderCond, req.InDays, showHidden, req.ShowPending)
 	if err != nil {
 		return nil, 0, err
 	}

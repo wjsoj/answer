@@ -393,7 +393,7 @@ func (qr *questionRepo) SitemapQuestions(ctx context.Context, page, pageSize int
 
 // GetQuestionPage query question page
 func (qr *questionRepo) GetQuestionPage(ctx context.Context, page, pageSize int,
-	tagIDs, excludeTagIDs []string, userID, orderCond string, inDays int, showHidden, showPending bool) (
+	tagIDs []string, sectionTagID string, excludeSectionTagIDs []string, userID, orderCond string, inDays int, showHidden, showPending bool) (
 	questionList []*entity.Question, total int64, err error) {
 	questionList = make([]*entity.Question, 0)
 	session := qr.data.DB.Context(ctx)
@@ -406,24 +406,21 @@ func (qr *questionRepo) GetQuestionPage(ctx context.Context, page, pageSize int,
 	}
 	session.Select("question.*")
 	session.In("question.status", status)
+	// Section filtering: direct column filter (independent of tags)
+	if sectionTagID != "" {
+		session.And("question.section_tag_id = ?", sectionTagID)
+	} else if len(excludeSectionTagIDs) > 0 {
+		excludeArgs := make([]interface{}, len(excludeSectionTagIDs))
+		for i, id := range excludeSectionTagIDs {
+			excludeArgs[i] = id
+		}
+		session.And(builder.NotIn("question.section_tag_id", excludeArgs...))
+	}
+	// Tag filtering: via tag_rel join (independent of sections)
 	if len(tagIDs) > 0 {
 		session.Join("LEFT", "tag_rel", "question.id = tag_rel.object_id")
 		session.In("tag_rel.tag_id", tagIDs)
 		session.And("tag_rel.status = ?", entity.TagRelStatusAvailable)
-	}
-	if len(excludeTagIDs) > 0 {
-		excludeArgs := make([]interface{}, len(excludeTagIDs))
-		for i, id := range excludeTagIDs {
-			excludeArgs[i] = id
-		}
-		session.And(builder.NotIn("question.id",
-			builder.Select("tr.object_id").From("tag_rel tr").Where(
-				builder.And(
-					builder.In("tr.tag_id", excludeArgs...),
-					builder.Eq{"tr.status": entity.TagRelStatusAvailable},
-				),
-			),
-		))
 	}
 	if len(userID) > 0 {
 		session.And("question.user_id = ?", userID)

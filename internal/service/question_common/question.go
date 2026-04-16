@@ -59,7 +59,7 @@ type QuestionRepo interface {
 	UpdateQuestion(ctx context.Context, question *entity.Question, Cols []string) (err error)
 	GetQuestion(ctx context.Context, id string) (question *entity.Question, exist bool, err error)
 	GetQuestionList(ctx context.Context, question *entity.Question) (questions []*entity.Question, err error)
-	GetQuestionPage(ctx context.Context, page, pageSize int, tagIDs, excludeTagIDs []string, userID, orderCond string, inDays int, showHidden, showPending bool) (
+	GetQuestionPage(ctx context.Context, page, pageSize int, tagIDs []string, sectionTagID string, excludeSectionTagIDs []string, userID, orderCond string, inDays int, showHidden, showPending bool) (
 		questionList []*entity.Question, total int64, err error)
 	GetRecommendQuestionPageByTags(ctx context.Context, userID string, tagIDs, followedQuestionIDs []string, page, pageSize int) (questionList []*entity.Question, total int64, err error)
 	UpdateQuestionStatus(ctx context.Context, questionID string, status int) (err error)
@@ -388,6 +388,7 @@ func (qs *QuestionCommon) FormatQuestionsPage(
 			Operator:         &schema.QuestionPageRespOperator{ID: questionInfo.UserID},
 		}
 
+		t.SectionTagID = questionInfo.SectionTagID
 		questionIDs = append(questionIDs, questionInfo.ID)
 		userIDs = append(userIDs, questionInfo.UserID)
 		haveEdited, haveAnswered := false, false
@@ -443,12 +444,41 @@ func (qs *QuestionCommon) FormatQuestionsPage(
 		return formattedQuestions, err
 	}
 
+	// Collect section tag IDs for batch lookup
+	sectionTagIDs := make([]string, 0)
+	for _, item := range formattedQuestions {
+		if item.SectionTagID != "" {
+			sectionTagIDs = append(sectionTagIDs, item.SectionTagID)
+		}
+	}
+	sectionTagMap := make(map[string]*entity.Tag)
+	if len(sectionTagIDs) > 0 {
+		tagList, tagErr := qs.tagCommon.GetTagListByIDs(ctx, sectionTagIDs)
+		if tagErr == nil {
+			for _, t := range tagList {
+				if t != nil {
+					sectionTagMap[t.ID] = t
+				}
+			}
+		}
+	}
+
 	for _, item := range formattedQuestions {
 		tags, ok := tagsMap[item.ID]
 		if ok {
 			item.Tags = tags
 		} else {
 			item.Tags = make([]*schema.TagResp, 0)
+		}
+		// Fill section info from SectionTagID
+		if item.SectionTagID != "" {
+			if st, ok := sectionTagMap[item.SectionTagID]; ok && st != nil {
+				item.Section = &schema.QuestionSectionResp{
+					TagID:       st.ID,
+					SlugName:    st.SlugName,
+					DisplayName: st.DisplayName,
+				}
+			}
 		}
 		userInfo, ok := userInfoMap[item.Operator.ID]
 		if ok {
@@ -683,6 +713,17 @@ func (qs *QuestionCommon) ShowFormat(ctx context.Context, data *entity.Question)
 		}
 	}
 	info.Tags = make([]*schema.TagResp, 0)
+	// Fill section info
+	if data.SectionTagID != "" {
+		tagList, err := qs.tagCommon.GetTagListByIDs(ctx, []string{data.SectionTagID})
+		if err == nil && len(tagList) > 0 && tagList[0] != nil {
+			info.Section = &schema.QuestionSectionResp{
+				TagID:       tagList[0].ID,
+				SlugName:    tagList[0].SlugName,
+				DisplayName: tagList[0].DisplayName,
+			}
+		}
+	}
 	return &info
 }
 func (qs *QuestionCommon) ShowFormatWithTag(ctx context.Context, data *entity.QuestionWithTagsRevision) *schema.QuestionInfoResp {

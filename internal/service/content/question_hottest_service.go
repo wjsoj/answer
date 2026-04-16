@@ -39,7 +39,7 @@ func (q *QuestionService) RefreshHottestCron(ctx context.Context) {
 		questionList, _, err := q.questionRepo.GetQuestionPage(
 			ctx,
 			page, pageSize,
-			[]string{}, nil,
+			[]string{}, "", nil,
 			"", "newest",
 			schema.HotInDays,
 			false, false)

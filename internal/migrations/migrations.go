@@ -109,6 +109,7 @@ var migrations = []Migration{
 	NewMigration("v1.8.1", "ai feat", aiFeat, true),
 	NewMigration("v1.8.2", "add api key name field", addAPIKeyNameField, false),
 	NewMigration("v1.8.3", "add api key expiration and usage", addAPIKeyExpirationAndUsage, false),
+	NewMigration("v1.9.0", "add question section_tag_id column", addQuestionSectionTagID, false),
 }
 
 func GetMigrations() []Migration {

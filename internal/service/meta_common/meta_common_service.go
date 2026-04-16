@@ -102,3 +102,12 @@ func (ms *MetaCommonService) GetMetaList(ctx context.Context, objID string) (met
 	}
 	return metas, err
 }
+
+// GetMetaListByKey returns every meta row whose key matches.
+func (ms *MetaCommonService) GetMetaListByKey(ctx context.Context, key string) (metas []*entity.Meta, err error) {
+	metas, err = ms.metaRepo.GetMetaList(ctx, &entity.Meta{Key: key})
+	if err != nil {
+		return nil, err
+	}
+	return metas, nil
+}

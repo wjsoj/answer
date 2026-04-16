@@ -188,6 +188,14 @@ const QuestionList: FC<Props> = ({
                   )}
 
                   <div className="question-tags mb-12">
+                    {li.section && (
+                      <NavLink
+                        to={`/questions?section=${li.section.slug_name}`}
+                        className="badge text-bg-primary me-1 text-decoration-none"
+                        onClick={(e) => e.stopPropagation()}>
+                        {li.section.display_name}
+                      </NavLink>
+                    )}
                     {Array.isArray(li.tags)
                       ? li.tags.map((tag, index) => {
                           return (

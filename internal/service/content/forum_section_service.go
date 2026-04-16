@@ -154,28 +154,17 @@ func (qs *QuestionService) CanAccessSectionBySlug(ctx context.Context, userID, s
 	return qs.canAccessSectionByTagID(ctx, userID, tagID)
 }
 
-// CanAccessQuestionByID checks if a user can access a question based on its section tags.
-// Returns true if the question is accessible, false if any of its tags belong to a private section
-// the user cannot access. Fail-closed: returns false on errors.
+// CanAccessQuestionByID checks if a user can access a question based on its section.
+// Uses question.SectionTagID directly. Returns true if no section or if user has access.
 func (qs *QuestionService) CanAccessQuestionByID(ctx context.Context, userID, questionID string) (bool, error) {
-	tags, err := qs.tagCommon.GetObjectTag(ctx, questionID)
-	if err != nil {
+	question, exist, err := qs.questionRepo.GetQuestion(ctx, questionID)
+	if err != nil || !exist {
 		return false, err
 	}
-	for _, tag := range tags {
-		slug := tag.SlugName
-		if tag.MainTagSlugName != "" {
-			slug = tag.MainTagSlugName
-		}
-		canAccess, err := qs.CanAccessSectionBySlug(ctx, userID, slug)
-		if err != nil {
-			return false, err
-		}
-		if !canAccess {
-			return false, nil
-		}
+	if question.SectionTagID == "" {
+		return true, nil
 	}
-	return true, nil
+	return qs.canAccessSectionByTagID(ctx, userID, question.SectionTagID)
 }
 
 // CanAccessObjectByID checks if a user can access an object (question, answer, or comment)
@@ -203,30 +192,87 @@ func (qs *QuestionService) CanAccessObjectByID(ctx context.Context, userID, obje
 	}
 }
 
-// listSectionTags fetches all tags (sections are top-level tags without MainTagID).
+// listSectionTagSlugs returns the slug set of tags that are explicitly marked
+// as forum sections. Used to reject section-tags when they appear in the tag
+// list of a question that already has a different (or no) section selected.
+func (qs *QuestionService) listSectionTagSlugs(ctx context.Context) (map[string]bool, error) {
+	result := make(map[string]bool)
+	tags, err := qs.listSectionTags(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range tags {
+		result[strings.ToLower(t.SlugName)] = true
+	}
+	return result, nil
+}
+
+// stripSectionTags removes ALL section-tags from the supplied tag list.
+// Sections and tags are independent systems — section tags should never
+// appear in a question's tag list.
+func (qs *QuestionService) stripSectionTags(ctx context.Context, tags []*schema.TagItem) ([]*schema.TagItem, error) {
+	if len(tags) == 0 {
+		return tags, nil
+	}
+	sectionSlugs, err := qs.listSectionTagSlugs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(sectionSlugs) == 0 {
+		return tags, nil
+	}
+	filtered := make([]*schema.TagItem, 0, len(tags))
+	for _, t := range tags {
+		if t == nil {
+			continue
+		}
+		slug := strings.ToLower(t.SlugName)
+		if sectionSlugs[slug] {
+			continue // skip section tags
+		}
+		filtered = append(filtered, t)
+	}
+	return filtered, nil
+}
+
+// listSectionTags fetches tags that are explicitly marked as forum sections.
+// A tag is considered a section iff it carries a forum.section.visibility meta entry.
+// Tags without that meta are ordinary filter tags and must not appear in the sidebar.
 func (qs *QuestionService) listSectionTags(ctx context.Context) ([]*entity.Tag, error) {
-	var allTags []*entity.Tag
-	page := 1
-	pageSize := 100
-	for {
-		tags, _, err := qs.tagCommon.GetTagPage(ctx, page, pageSize, &entity.Tag{}, "")
-		if err != nil {
-			return nil, err
-		}
-		for _, t := range tags {
-			if t.MainTagID == 0 && t.Status == entity.TagStatusAvailable {
-				allTags = append(allTags, t)
-			}
-		}
-		if len(tags) < pageSize {
-			break
-		}
-		page++
-		if page > 100 { // safety limit
-			break
+	metas, err := qs.metaService.GetMetaListByKey(ctx, entity.ForumSectionVisibility)
+	if err != nil {
+		return nil, err
+	}
+	if len(metas) == 0 {
+		return nil, nil
+	}
+	tagIDs := make([]string, 0, len(metas))
+	for _, m := range metas {
+		if m.ObjectID != "" {
+			tagIDs = append(tagIDs, m.ObjectID)
 		}
 	}
-	return allTags, nil
+	if len(tagIDs) == 0 {
+		return nil, nil
+	}
+	tagMap, err := qs.tagCommon.GetTagListByIDs(ctx, tagIDs)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*entity.Tag, 0, len(tagMap))
+	for _, t := range tagMap {
+		if t == nil {
+			continue
+		}
+		if t.MainTagID != 0 {
+			continue
+		}
+		if t.Status != entity.TagStatusAvailable {
+			continue
+		}
+		result = append(result, t)
+	}
+	return result, nil
 }
 
 // GetAccessibleForumSections returns sections the user can access.
@@ -451,52 +497,30 @@ func (qs *QuestionService) getInaccessibleSectionTagIDs(ctx context.Context, use
 		canAccess, err := qs.canAccessSectionByTagID(ctx, userID, t.ID)
 		if err != nil {
 			log.Errorf("check section access for exclusion: %v", err)
-			// fail-closed: exclude on error
 			canAccess = false
 		}
 		if !canAccess {
 			excludeIDs = append(excludeIDs, t.ID)
-			// Also exclude synonym tags
-			synIDs, err := qs.tagCommon.GetTagIDsByMainTagID(ctx, t.ID)
-			if err == nil {
-				excludeIDs = append(excludeIDs, synIDs...)
-			}
 		}
 	}
 	return excludeIDs
 }
 
 // FilterQuestionsBySectionAccess filters questions based on section access.
-// Returns only questions the user can access. Fail-closed: on error, the question is excluded.
+// Uses SectionTagID from the response. Fail-closed: on error, the question is excluded.
 func (qs *QuestionService) FilterQuestionsBySectionAccess(ctx context.Context, userID string, questions []*schema.QuestionPageResp) []*schema.QuestionPageResp {
 	filtered := make([]*schema.QuestionPageResp, 0, len(questions))
 	for _, q := range questions {
-		accessible := true
-		for _, t := range q.Tags {
-			sectionTagID := t.ID
-			if t.MainTagSlugName != "" {
-				// Look up the main tag
-				mainTag, exist, err := qs.tagCommon.GetTagBySlugName(ctx, t.MainTagSlugName)
-				if err != nil || !exist {
-					// fail-closed: exclude if we can't resolve the main tag
-					accessible = false
-					break
-				}
-				sectionTagID = mainTag.ID
-			}
-			canAccess, err := qs.canAccessSectionByTagID(ctx, userID, sectionTagID)
-			if err != nil {
-				log.Errorf("check section access: %v", err)
-				// fail-closed: exclude on error
-				accessible = false
-				break
-			}
-			if !canAccess {
-				accessible = false
-				break
-			}
+		if q.SectionTagID == "" {
+			filtered = append(filtered, q)
+			continue
 		}
-		if accessible {
+		canAccess, err := qs.canAccessSectionByTagID(ctx, userID, q.SectionTagID)
+		if err != nil {
+			log.Errorf("check section access: %v", err)
+			continue // fail-closed
+		}
+		if canAccess {
 			filtered = append(filtered, q)
 		}
 	}

@@ -166,6 +166,13 @@ const Index: FC<Props> = ({ data, initPage, hasAnswer, isLogged }) => {
       </ImgViewer>
 
       <div className="m-n1">
+        {data?.section && (
+          <a
+            href={`/questions?section=${data.section.slug_name}`}
+            className="badge text-bg-primary m-1 text-decoration-none">
+            {data.section.display_name}
+          </a>
+        )}
         {data?.tags?.map((item: any) => {
           return <Tag className="m-1" key={item.slug_name} data={item} />;
         })}

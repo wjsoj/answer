@@ -237,13 +237,14 @@ type QuestionBaseInfo struct {
 }
 
 type QuestionInfoResp struct {
-	ID                   string         `json:"id" `
-	Title                string         `json:"title"`
-	UrlTitle             string         `json:"url_title"`
-	Content              string         `json:"content"`
-	HTML                 string         `json:"html"`
-	Description          string         `json:"description"`
-	Tags                 []*TagResp     `json:"tags"`
+	ID                   string               `json:"id" `
+	Title                string               `json:"title"`
+	UrlTitle             string               `json:"url_title"`
+	Content              string               `json:"content"`
+	HTML                 string               `json:"html"`
+	Description          string               `json:"description"`
+	Tags                 []*TagResp           `json:"tags"`
+	Section              *QuestionSectionResp `json:"section,omitempty"`
 	ViewCount            int            `json:"view_count"`
 	UniqueViewCount      int            `json:"unique_view_count"`
 	VoteCount            int            `json:"vote_count"`
@@ -404,6 +405,10 @@ type QuestionPageResp struct {
 	Status      int        `json:"status"`
 	Tags        []*TagResp `json:"tags"`
 
+	// section information (independent of tags)
+	SectionTagID string              `json:"-"`
+	Section      *QuestionSectionResp `json:"section,omitempty"`
+
 	// question statistical information
 	ViewCount       int `json:"view_count"`
 	UniqueViewCount int `json:"unique_view_count"`
@@ -422,6 +427,13 @@ type QuestionPageResp struct {
 	OperatedAt    int64                     `json:"operated_at"`
 	Operator      *QuestionPageRespOperator `json:"operator"`
 	OperationType string                    `json:"operation_type"`
+}
+
+// QuestionSectionResp is the section info attached to a question response.
+type QuestionSectionResp struct {
+	TagID       string `json:"tag_id"`
+	SlugName    string `json:"slug_name"`
+	DisplayName string `json:"display_name"`
 }
 
 type QuestionPageRespOperator struct {

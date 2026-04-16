@@ -42,5 +42,9 @@ else
   /usr/bin/answer i18n -t /data/i18n/
 fi
 
+# Auto-upgrade database schema if needed
+echo "Checking for database migrations..."
+/usr/bin/answer upgrade -C /data/
+
 # Run the application
 /usr/bin/answer run -C /data/
